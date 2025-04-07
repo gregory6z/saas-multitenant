@@ -41,7 +41,6 @@ describe("AuthenticateUserUseCase", () => {
 		const result = await sut.execute({
 			email: "user@example.com",
 			password: "password123",
-			tenantId: "tenant-1",
 		});
 
 		// Assert
@@ -60,7 +59,6 @@ describe("AuthenticateUserUseCase", () => {
 		const result = await sut.execute({
 			email: "nonexistent@example.com",
 			password: "password123",
-			tenantId: "tenant-1",
 		});
 
 		// Assert
@@ -85,32 +83,6 @@ describe("AuthenticateUserUseCase", () => {
 		const result = await sut.execute({
 			email: "user@example.com",
 			password: "wrong-password",
-			tenantId: "tenant-1",
-		});
-
-		// Assert
-		assert.ok(result.isLeft());
-		assert.ok(result.value instanceof InvalidCredentialsError);
-	});
-
-	test("should return an error when tenant ID doesn't match", async () => {
-		// Arrange
-		const password = "password123";
-		const hashedPassword = await hashProvider.generateHash(password);
-
-		await usersRepository.create({
-			name: "Test User",
-			email: "user@example.com",
-			passwordHash: hashedPassword,
-			tenantId: "tenant-1",
-			role: "user",
-		});
-
-		// Act
-		const result = await sut.execute({
-			email: "user@example.com",
-			password: "password123",
-			tenantId: "tenant-2", // Different tenant
 		});
 
 		// Assert
@@ -135,7 +107,6 @@ describe("AuthenticateUserUseCase", () => {
 		const result = await sut.execute({
 			email: "admin@example.com",
 			password: "admin-password",
-			tenantId: "tenant-1",
 		});
 
 		// Assert
@@ -145,5 +116,43 @@ describe("AuthenticateUserUseCase", () => {
 		const payload = await tokenProvider.verifyToken(result.value.token);
 		assert.strictEqual(payload.userId, adminUser.id);
 		assert.strictEqual(payload.role, "admin");
+	});
+
+	test("should handle multiple users with same email in different tenants", async () => {
+		// Arrange
+		const password = "password123";
+		const hashedPassword = await hashProvider.generateHash(password);
+
+		// Create two users with the same email in different tenants
+		const user1 = await usersRepository.create({
+			name: "User Tenant 1",
+			email: "same@example.com",
+			passwordHash: hashedPassword,
+			tenantId: "tenant-1",
+			role: "user",
+		});
+
+		await usersRepository.create({
+			name: "User Tenant 2",
+			email: "same@example.com",
+			passwordHash: hashedPassword,
+			tenantId: "tenant-2",
+			role: "manager",
+		});
+
+		// Act - Without specifying tenant, should return the first found
+		const result = await sut.execute({
+			email: "same@example.com",
+			password: "password123",
+		});
+
+		// Assert
+		assert.ok(result.isRight());
+
+		// Should find the first user (implementation dependent)
+		const payload = await tokenProvider.verifyToken(result.value.token);
+		// Note: This assertion depends on the implementation of findByEmailGlobal
+		// If it returns the first match, it will be user1
+		assert.strictEqual(payload.userId, user1.id);
 	});
 });

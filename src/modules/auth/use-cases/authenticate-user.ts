@@ -1,13 +1,12 @@
-import { left, right, type Either } from "@/core/either.ts";
-import { InvalidCredentialsError } from "../errors/auth.errors.ts";
-import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.ts";
+import { type Either, left, right } from "@/core/either.ts";
 import type { HashProvider } from "@/providers/hash/hash-provider.ts";
 import type { TokenProvider } from "@/providers/token/token-provider.ts";
+import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.ts";
+import { InvalidCredentialsError } from "../errors/auth.errors.ts";
 
 interface AuthenticateUserRequest {
 	email: string;
 	password: string;
-	tenantId: string;
 }
 
 type AuthenticateUserResponse = {
@@ -29,9 +28,8 @@ export class AuthenticateUserUseCase {
 	async execute({
 		email,
 		password,
-		tenantId,
 	}: AuthenticateUserRequest): Promise<AuthenticateUserResult> {
-		const user = await this.usersRepository.findByEmail(email, tenantId);
+		const user = await this.usersRepository.findByEmailAcrossTenants(email);
 
 		if (!user) {
 			return left(new InvalidCredentialsError());

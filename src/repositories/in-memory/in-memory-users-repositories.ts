@@ -17,6 +17,16 @@ export class InMemoryUsersRepository implements UsersRepository {
 		return user;
 	}
 
+	async findByEmailAcrossTenants(email: string): Promise<User | null> {
+		const user = this.items.find((item) => item.email === email);
+
+		if (!user) {
+			return null;
+		}
+
+		return user;
+	}
+
 	async create(
 		data: Omit<User, "id" | "createdAt" | "updatedAt">,
 	): Promise<User> {
