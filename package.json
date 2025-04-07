@@ -1,0 +1,26 @@
+{
+  "name": "multi-saas",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch --import tsx server.ts",
+    "start": "node --import tsx server.ts",
+    "test": "node --import tsx --test \"src/**/*.spec.ts\" --test-reporter spec"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^11.0.1",
+    "bcryptjs": "^3.0.2",
+    "fastify": "^5.2.2"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^22.14.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.8.3"
+  }
+}
