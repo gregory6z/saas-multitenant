@@ -34,3 +34,19 @@ export class UnauthorizedError extends Error {
 		this.name = "UnauthorizedError";
 	}
 }
+
+// ---- Refresh Token Errors ----
+
+export class InvalidRefreshTokenError extends Error {
+	constructor() {
+		super("Invalid refresh token");
+		this.name = "InvalidRefreshTokenError";
+	}
+}
+
+export class RefreshTokenRevokedError extends Error {
+	constructor() {
+		super("Refresh token has been revoked");
+		this.name = "RefreshTokenRevokedError";
+	}
+}

@@ -3,6 +3,7 @@ import type { HashProvider } from "@/providers/hash/hash-provider.ts";
 import type { TokenProvider } from "@/providers/token/token-provider.ts";
 import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.ts";
 import { InvalidCredentialsError } from "../errors/auth.errors.ts";
+import { randomUUID } from "node:crypto";
 
 interface AuthenticateUserRequest {
 	email: string;
@@ -11,6 +12,7 @@ interface AuthenticateUserRequest {
 
 type AuthenticateUserResponse = {
 	token: string;
+	refreshToken: string;
 };
 
 type AuthenticateUserResult = Either<
@@ -50,8 +52,16 @@ export class AuthenticateUserUseCase {
 			role: user.role,
 		});
 
+		const tokenFamily = randomUUID();
+
+		const refreshToken = await this.tokenProvider.generateRefreshToken({
+			userId: user.id,
+			family: tokenFamily,
+		});
+
 		return right({
 			token,
+			refreshToken,
 		});
 	}
 }
