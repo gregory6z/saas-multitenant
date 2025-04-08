@@ -7,6 +7,14 @@ export interface User {
 	role: UserRole;
 	createdAt: Date;
 	updatedAt: Date;
+	// emailVerification: VerificationData;
+}
+
+export interface VerificationData {
+	token: string | null;
+	expiresAt: Date | null;
+	verified: boolean;
+	verifiedAt?: Date | null;
 }
 
 export type UserRole = "admin" | "manager" | "user";
