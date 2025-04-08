@@ -9,6 +9,8 @@ import {
 	UnauthorizedRoleChangeError,
 } from "../errors/account.errors.ts";
 import { UpdateUserUseCase } from "./update-user.ts";
+import { makeUser } from "@/core/entities/test/make-user.ts";
+import type { User } from "@/core/entities/User.js";
 
 describe("UpdateUserService", () => {
 	let usersRepository: InMemoryUsersRepository;
@@ -16,15 +18,27 @@ describe("UpdateUserService", () => {
 	let sut: UpdateUserUseCase;
 	let userId: string;
 
+	// Função auxiliar para criar usuário no repositório a partir do makeUser
+	async function createUserFromMake(
+		override: Partial<User> = {},
+	): Promise<User> {
+		const userData = makeUser(override);
+
+		const { id, createdAt, updatedAt, ...createData } = userData;
+
+		return usersRepository.create(createData);
+	}
+
 	beforeEach(async () => {
 		usersRepository = new InMemoryUsersRepository();
 		hashProvider = new InMemoryHashProvider();
 		sut = new UpdateUserUseCase(usersRepository, hashProvider);
 
-		const user = await usersRepository.create({
+		// Criar um usuário para os testes usando nossa função auxiliar
+		const user = await createUserFromMake({
 			name: "John Doe",
 			email: "john@example.com",
-			passwordHash: await hashProvider.generateHash("123456"),
+			passwordHash: "hashed:123456",
 			tenantId: "tenant-1",
 			role: "user",
 		});
@@ -131,11 +145,11 @@ describe("UpdateUserService", () => {
 	});
 
 	test("should not allow email update if email is already in use by another user", async () => {
-		// Create another user with a different email
-		await usersRepository.create({
+		// Create another user with a different email using nossa função auxiliar
+		await createUserFromMake({
 			name: "Another User",
 			email: "another@example.com",
-			passwordHash: await hashProvider.generateHash("123456"),
+			passwordHash: "hashed:123456",
 			tenantId: "tenant-1",
 			role: "user",
 		});
@@ -156,10 +170,10 @@ describe("UpdateUserService", () => {
 	});
 
 	test("should allow email update if email is already in use but in a different tenant", async () => {
-		await usersRepository.create({
+		await createUserFromMake({
 			name: "Another User",
 			email: "same@example.com",
-			passwordHash: await hashProvider.generateHash("123456"),
+			passwordHash: "hashed:123456",
 			tenantId: "tenant-2", // Different tenant
 			role: "user",
 		});

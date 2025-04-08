@@ -7,10 +7,23 @@ import {
 	CrossTenantOperationError,
 	UserNotFoundError,
 } from "../errors/account.errors.ts";
+import { makeUser } from "@/core/entities/test/make-user.ts";
+import type { User } from "@/core/entities/User.js";
 
 describe("GetUserUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
 	let sut: GetUserUseCase;
+
+	// Função auxiliar para criar usuário no repositório a partir do makeUser
+	async function createUserFromMake(
+		override: Partial<User> = {},
+	): Promise<User> {
+		const userData = makeUser(override);
+
+		const { id, createdAt, updatedAt, ...createData } = userData;
+
+		return usersRepository.create(createData);
+	}
 
 	beforeEach(() => {
 		usersRepository = new InMemoryUsersRepository();
@@ -19,10 +32,9 @@ describe("GetUserUseCase", () => {
 
 	test("should successfully retrieve a user from the same tenant", async () => {
 		// Create a user
-		const user = await usersRepository.create({
+		const user = await createUserFromMake({
 			name: "Test User",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
 		});
@@ -41,12 +53,17 @@ describe("GetUserUseCase", () => {
 
 	test("should return an error when trying to get a user from a different tenant", async () => {
 		// Create a user in tenant-1
-		const user = await usersRepository.create({
+		const user = await createUserFromMake({
 			name: "Test User",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
 		// Try to get the user from tenant-2
@@ -71,12 +88,17 @@ describe("GetUserUseCase", () => {
 
 	test("should retrieve an admin user from the same tenant", async () => {
 		// Create an admin user
-		const adminUser = await usersRepository.create({
+		const adminUser = await createUserFromMake({
 			name: "Admin User",
 			email: "admin@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "admin",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
 		const result = await sut.execute({
@@ -91,12 +113,17 @@ describe("GetUserUseCase", () => {
 
 	test("should retrieve a manager user from the same tenant", async () => {
 		// Create a manager user
-		const managerUser = await usersRepository.create({
+		const managerUser = await createUserFromMake({
 			name: "Manager User",
 			email: "manager@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "manager",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
 		const result = await sut.execute({

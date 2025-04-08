@@ -7,14 +7,14 @@ export interface User {
 	role: UserRole;
 	createdAt: Date;
 	updatedAt: Date;
-	// emailVerification: VerificationData;
+	emailVerification: VerificationData;
 }
 
 export interface VerificationData {
 	token: string | null;
 	expiresAt: Date | null;
 	verified: boolean;
-	verifiedAt?: Date | null;
+	verifiedAt: Date | null;
 }
 
 export type UserRole = "admin" | "manager" | "user";
@@ -25,6 +25,7 @@ export interface CreateUserDTO {
 	passwordHash: string;
 	tenantId: string;
 	role: UserRole;
+	emailVerification?: VerificationData;
 }
 
 export interface UpdateUserDTO {
@@ -32,4 +33,5 @@ export interface UpdateUserDTO {
 	email?: string;
 	passwordHash?: string;
 	role?: UserRole;
+	emailVerification?: Partial<VerificationData>;
 }

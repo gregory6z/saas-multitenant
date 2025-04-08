@@ -8,10 +8,22 @@ import {
 	UserNotFoundError,
 	CrossTenantOperationError,
 } from "../errors/account.errors.ts";
+import { makeUser } from "@/core/entities/test/make-user.ts";
+import type { User } from "@/core/entities/User.js";
 
 describe("DeleteUserUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
 	let sut: DeleteUserUseCase;
+
+	async function createUserFromMake(
+		override: Partial<User> = {},
+	): Promise<User> {
+		const userData = makeUser(override);
+
+		const { id, createdAt, updatedAt, ...createData } = userData;
+
+		return usersRepository.create(createData);
+	}
 
 	beforeEach(() => {
 		usersRepository = new InMemoryUsersRepository();
@@ -19,22 +31,30 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should allow an admin to delete a regular user", async () => {
-		// Create an admin user
-		const adminUser = await usersRepository.create({
+		const adminUser = await createUserFromMake({
 			name: "Admin User",
 			email: "admin@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "admin",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
-		// Create a user to delete
-		const userToDelete = await usersRepository.create({
+		const userToDelete = await createUserFromMake({
 			name: "User to Delete",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
 		const result = await sut.execute({
@@ -49,22 +69,30 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow an admin to delete another admin", async () => {
-		// Create first admin user
-		const adminUser1 = await usersRepository.create({
+		const adminUser1 = await createUserFromMake({
 			name: "Admin User 1",
 			email: "admin1@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "admin",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
-		// Create second admin user
-		const adminUser2 = await usersRepository.create({
+		const adminUser2 = await createUserFromMake({
 			name: "Admin User 2",
 			email: "admin2@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "admin",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
 		const result = await sut.execute({
@@ -80,22 +108,30 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow an admin to delete a user from another tenant", async () => {
-		// Create an admin user in tenant-1
-		const adminUser = await usersRepository.create({
+		const adminUser = await createUserFromMake({
 			name: "Admin User",
 			email: "admin@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "admin",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
-		// Create a user in tenant-2
-		const userInOtherTenant = await usersRepository.create({
+		const userInOtherTenant = await createUserFromMake({
 			name: "User in Other Tenant",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-2",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
 		const result = await sut.execute({
@@ -111,12 +147,17 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should allow a user to delete their own account", async () => {
-		const user = await usersRepository.create({
+		const user = await createUserFromMake({
 			name: "Regular User",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
 		const result = await sut.execute({
@@ -131,20 +172,30 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow a regular user to delete another user", async () => {
-		const user = await usersRepository.create({
+		const user = await createUserFromMake({
 			name: "Regular User",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
-		const anotherUser = await usersRepository.create({
+		const anotherUser = await createUserFromMake({
 			name: "Another User",
 			email: "another@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
 		const result = await sut.execute({
@@ -160,20 +211,30 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow a manager to delete another user", async () => {
-		const manager = await usersRepository.create({
+		const manager = await createUserFromMake({
 			name: "Manager User",
 			email: "manager@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "manager",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
-		const user = await usersRepository.create({
+		const user = await createUserFromMake({
 			name: "Regular User",
 			email: "user@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "user",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: false,
+				verifiedAt: null,
+			},
 		});
 
 		const result = await sut.execute({
@@ -189,12 +250,17 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should return an error when the user to be deleted does not exist", async () => {
-		const admin = await usersRepository.create({
+		const admin = await createUserFromMake({
 			name: "Admin User",
 			email: "admin@example.com",
-			passwordHash: "hashed-password",
 			tenantId: "tenant-1",
 			role: "admin",
+			emailVerification: {
+				token: null,
+				expiresAt: null,
+				verified: true,
+				verifiedAt: new Date(),
+			},
 		});
 
 		const result = await sut.execute({
