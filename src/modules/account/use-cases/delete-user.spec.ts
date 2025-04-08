@@ -8,22 +8,11 @@ import {
 	UserNotFoundError,
 	CrossTenantOperationError,
 } from "../errors/account.errors.ts";
-import { makeUser } from "@/core/entities/test/make-user.ts";
-import type { User } from "@/core/entities/User.js";
+import { createUserInRepository } from "@/core/entities/test/make-user.ts";
 
 describe("DeleteUserUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
 	let sut: DeleteUserUseCase;
-
-	async function createUserFromMake(
-		override: Partial<User> = {},
-	): Promise<User> {
-		const userData = makeUser(override);
-
-		const { id, createdAt, updatedAt, ...createData } = userData;
-
-		return usersRepository.create(createData);
-	}
 
 	beforeEach(() => {
 		usersRepository = new InMemoryUsersRepository();
@@ -31,7 +20,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should allow an admin to delete a regular user", async () => {
-		const adminUser = await createUserFromMake({
+		const adminUser = await createUserInRepository(usersRepository, {
 			name: "Admin User",
 			email: "admin@example.com",
 			tenantId: "tenant-1",
@@ -44,7 +33,7 @@ describe("DeleteUserUseCase", () => {
 			},
 		});
 
-		const userToDelete = await createUserFromMake({
+		const userToDelete = await createUserInRepository(usersRepository, {
 			name: "User to Delete",
 			email: "user@example.com",
 			tenantId: "tenant-1",
@@ -69,7 +58,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow an admin to delete another admin", async () => {
-		const adminUser1 = await createUserFromMake({
+		const adminUser1 = await createUserInRepository(usersRepository, {
 			name: "Admin User 1",
 			email: "admin1@example.com",
 			tenantId: "tenant-1",
@@ -82,7 +71,7 @@ describe("DeleteUserUseCase", () => {
 			},
 		});
 
-		const adminUser2 = await createUserFromMake({
+		const adminUser2 = await createUserInRepository(usersRepository, {
 			name: "Admin User 2",
 			email: "admin2@example.com",
 			tenantId: "tenant-1",
@@ -108,7 +97,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow an admin to delete a user from another tenant", async () => {
-		const adminUser = await createUserFromMake({
+		const adminUser = await createUserInRepository(usersRepository, {
 			name: "Admin User",
 			email: "admin@example.com",
 			tenantId: "tenant-1",
@@ -121,7 +110,7 @@ describe("DeleteUserUseCase", () => {
 			},
 		});
 
-		const userInOtherTenant = await createUserFromMake({
+		const userInOtherTenant = await createUserInRepository(usersRepository, {
 			name: "User in Other Tenant",
 			email: "user@example.com",
 			tenantId: "tenant-2",
@@ -147,7 +136,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should allow a user to delete their own account", async () => {
-		const user = await createUserFromMake({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Regular User",
 			email: "user@example.com",
 			tenantId: "tenant-1",
@@ -172,7 +161,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow a regular user to delete another user", async () => {
-		const user = await createUserFromMake({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Regular User",
 			email: "user@example.com",
 			tenantId: "tenant-1",
@@ -185,7 +174,7 @@ describe("DeleteUserUseCase", () => {
 			},
 		});
 
-		const anotherUser = await createUserFromMake({
+		const anotherUser = await createUserInRepository(usersRepository, {
 			name: "Another User",
 			email: "another@example.com",
 			tenantId: "tenant-1",
@@ -211,7 +200,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should not allow a manager to delete another user", async () => {
-		const manager = await createUserFromMake({
+		const manager = await createUserInRepository(usersRepository, {
 			name: "Manager User",
 			email: "manager@example.com",
 			tenantId: "tenant-1",
@@ -224,7 +213,7 @@ describe("DeleteUserUseCase", () => {
 			},
 		});
 
-		const user = await createUserFromMake({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Regular User",
 			email: "user@example.com",
 			tenantId: "tenant-1",
@@ -250,7 +239,7 @@ describe("DeleteUserUseCase", () => {
 	});
 
 	test("should return an error when the user to be deleted does not exist", async () => {
-		const admin = await createUserFromMake({
+		const admin = await createUserInRepository(usersRepository, {
 			name: "Admin User",
 			email: "admin@example.com",
 			tenantId: "tenant-1",

@@ -1,4 +1,5 @@
 import type { User, UserRole, VerificationData } from "@/core/entities/User.js";
+import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
 
 /**
  * Factory function to create a User object for testing purposes
@@ -39,4 +40,37 @@ export function makeUsers(count: number, override: Partial<User> = {}): User[] {
 			...override,
 		}),
 	);
+}
+
+/**
+ * Helper function to create a user in the repository from makeUser
+ * @param repository - The users repository
+ * @param override - Optional partial User object to override default values
+ * @returns A promise that resolves to the created User
+ */
+export async function createUserInRepository(
+	repository: UsersRepository,
+	override: Partial<User> = {},
+): Promise<User> {
+	const userData = makeUser(override);
+
+	// Cria uma cópia do objeto excluindo os campos que não devem ser passados para o create
+	const { id, createdAt, updatedAt, ...createData } = userData;
+
+	return repository.create(createData);
+}
+
+/**
+ * Helper function to add a user directly to an in-memory repository
+ * @param repository - The in-memory users repository with items array
+ * @param override - Optional partial User object to override default values
+ * @returns The created User
+ */
+export function addUserToInMemoryRepository(
+	repository: { items: User[] },
+	override: Partial<User> = {},
+): User {
+	const user = makeUser(override);
+	repository.items.push(user);
+	return user;
 }

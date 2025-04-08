@@ -6,6 +6,7 @@ import { InMemoryHashProvider } from "@/providers/hash/implementations/in-memory
 import { InMemoryTokenProvider } from "@/providers/token/implementations/in-memory-token-provider.js";
 import { AuthenticateUserUseCase } from "./authenticate-user.js";
 import { InvalidCredentialsError } from "../errors/auth.errors.js";
+import { createUserInRepository } from "@/core/entities/test/make-user.ts";
 
 describe("AuthenticateUserUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
@@ -29,7 +30,7 @@ describe("AuthenticateUserUseCase", () => {
 		const password = "password123";
 		const hashedPassword = await hashProvider.generateHash(password);
 
-		const user = await usersRepository.create({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: hashedPassword,
@@ -72,7 +73,7 @@ describe("AuthenticateUserUseCase", () => {
 		const password = "password123";
 		const hashedPassword = await hashProvider.generateHash(password);
 
-		await usersRepository.create({
+		await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: hashedPassword,
@@ -128,7 +129,7 @@ describe("AuthenticateUserUseCase", () => {
 		const password = "password123";
 		const hashedPassword = await hashProvider.generateHash(password);
 
-		await usersRepository.create({
+		await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: hashedPassword,
@@ -152,7 +153,7 @@ describe("AuthenticateUserUseCase", () => {
 		const password = "admin-password";
 		const hashedPassword = await hashProvider.generateHash(password);
 
-		const adminUser = await usersRepository.create({
+		const adminUser = await createUserInRepository(usersRepository, {
 			name: "Admin User",
 			email: "admin@example.com",
 			passwordHash: hashedPassword,
@@ -181,7 +182,7 @@ describe("AuthenticateUserUseCase", () => {
 		const hashedPassword = await hashProvider.generateHash(password);
 
 		// Create two users with the same email in different tenants
-		const user1 = await usersRepository.create({
+		const user1 = await createUserInRepository(usersRepository, {
 			name: "User Tenant 1",
 			email: "same@example.com",
 			passwordHash: hashedPassword,
@@ -189,7 +190,7 @@ describe("AuthenticateUserUseCase", () => {
 			role: "user",
 		});
 
-		await usersRepository.create({
+		await createUserInRepository(usersRepository, {
 			name: "User Tenant 2",
 			email: "same@example.com",
 			passwordHash: hashedPassword,
@@ -219,7 +220,7 @@ describe("AuthenticateUserUseCase", () => {
 		const hashedPassword = await hashProvider.generateHash(password);
 
 		// Create two users with the same email in different tenants
-		const user1 = await usersRepository.create({
+		const user1 = await createUserInRepository(usersRepository, {
 			name: "User Tenant 1",
 			email: "same@example.com",
 			passwordHash: hashedPassword,
@@ -227,7 +228,7 @@ describe("AuthenticateUserUseCase", () => {
 			role: "user",
 		});
 
-		const user2 = await usersRepository.create({
+		await createUserInRepository(usersRepository, {
 			name: "User Tenant 2",
 			email: "same@example.com",
 			passwordHash: await hashProvider.generateHash("different-password"),
@@ -256,7 +257,7 @@ describe("AuthenticateUserUseCase", () => {
 		const password = "password123";
 		const hashedPassword = await hashProvider.generateHash(password);
 
-		const user1 = await usersRepository.create({
+		const user1 = await createUserInRepository(usersRepository, {
 			name: "User Tenant 1",
 			email: "same@example.com",
 			passwordHash: hashedPassword,
@@ -264,7 +265,7 @@ describe("AuthenticateUserUseCase", () => {
 			role: "user",
 		});
 
-		const user2 = await usersRepository.create({
+		await createUserInRepository(usersRepository, {
 			name: "User Tenant 2",
 			email: "same@example.com",
 			passwordHash: hashedPassword,

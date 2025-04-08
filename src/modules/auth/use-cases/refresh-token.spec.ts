@@ -8,6 +8,7 @@ import {
 	InvalidRefreshTokenError,
 	InvalidTokenError,
 } from "../errors/auth.errors.js";
+import { createUserInRepository } from "@/core/entities/test/make-user.ts";
 
 describe("RefreshTokenUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
@@ -22,7 +23,7 @@ describe("RefreshTokenUseCase", () => {
 
 	test("should generate new tokens with a valid refresh token", async () => {
 		// Arrange
-		const user = await usersRepository.create({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
@@ -54,7 +55,7 @@ describe("RefreshTokenUseCase", () => {
 
 	test("should return a new refresh token different from the original", async () => {
 		// Arrange
-		const user = await usersRepository.create({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
@@ -83,7 +84,7 @@ describe("RefreshTokenUseCase", () => {
 
 	test("should maintain the same family in the new refresh token", async () => {
 		// Arrange
-		const user = await usersRepository.create({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
@@ -151,7 +152,7 @@ describe("RefreshTokenUseCase", () => {
 
 	test("should generate tokens with updated user information if user data changed", async () => {
 		// Arrange
-		const user = await usersRepository.create({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
@@ -188,7 +189,7 @@ describe("RefreshTokenUseCase", () => {
 
 	test("should be able to use the new refresh token for another refresh", async () => {
 		// Arrange
-		const user = await usersRepository.create({
+		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",

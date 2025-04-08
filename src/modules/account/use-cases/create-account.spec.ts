@@ -5,32 +5,13 @@ import { InMemoryHashProvider } from "@/providers/hash/implementations/in-memory
 import { InMemoryUsersRepository } from "@/repositories/in-memory/in-memory-users-repositories.js";
 import { EmailAlreadyInUseError } from "../errors/account.errors.ts";
 import { CreateAccountUseCase } from "./create-account.ts";
-import { makeUser } from "@/core/entities/test/make-user.ts";
+import { addUserToInMemoryRepository } from "@/core/entities/test/make-user.ts";
 import { DomainEvents } from "@/core/events/domain-events.js";
-import type { User } from "@/core/entities/User.js";
 
 describe("CreateAccountService", () => {
 	let usersRepository: InMemoryUsersRepository;
 	let hashProvider: InMemoryHashProvider;
 	let sut: CreateAccountUseCase;
-
-	// Função auxiliar para adicionar usuário diretamente ao repositório
-	function addUserToRepository(override: Partial<User> = {}): User {
-		const userData = makeUser(override);
-
-		const { id, createdAt, updatedAt, ...createData } = userData;
-
-		// Adicionar diretamente ao array de items do repositório
-		const user: User = {
-			id: id || "user-id",
-			...createData,
-			createdAt: createdAt || new Date(),
-			updatedAt: updatedAt || new Date(),
-		};
-
-		usersRepository.items.push(user);
-		return user;
-	}
 
 	beforeEach(() => {
 		usersRepository = new InMemoryUsersRepository();
@@ -124,7 +105,7 @@ describe("CreateAccountService", () => {
 
 	test("should not be able to create a user with an email that is already in use in the same tenant", async () => {
 		// Adicionando um usuário existente ao repositório usando nossa função auxiliar
-		addUserToRepository({
+		addUserToInMemoryRepository(usersRepository, {
 			email: "john@example.com",
 			tenantId: "tenant-1",
 		});
@@ -149,7 +130,7 @@ describe("CreateAccountService", () => {
 
 	test("should be able to create users with the same email in different tenants", async () => {
 		// Adicionando um usuário existente ao repositório usando nossa função auxiliar
-		addUserToRepository({
+		addUserToInMemoryRepository(usersRepository, {
 			email: "john@example.com",
 			tenantId: "tenant-1",
 		});
