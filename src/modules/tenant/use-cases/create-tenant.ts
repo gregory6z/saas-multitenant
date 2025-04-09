@@ -4,21 +4,8 @@ import type { TenantsRepository } from "@/repositories/interfaces/tenants-reposi
 import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
 import { DomainEvents } from "@/core/events/domain-events.js";
 import { TenantCreatedEvent } from "../events/tenant-created-event.ts";
-
-// Possíveis erros
-export class SubdomainAlreadyInUseError extends Error {
-	constructor(subdomain: string) {
-		super(`The subdomain "${subdomain}" is already in use.`);
-		this.name = "SubdomainAlreadyInUseError";
-	}
-}
-
-export class UserNotFoundError extends Error {
-	constructor(userId: string) {
-		super(`User with ID "${userId}" not found.`);
-		this.name = "UserNotFoundError";
-	}
-}
+import { SubdomainAlreadyInUseError } from "../errors/tenant.errors.ts";
+import { UserNotFoundError } from "@/modules/account/errors/account.errors.ts";
 
 interface CreateTenantRequest {
 	name: string;
@@ -50,7 +37,6 @@ export class CreateTenantUseCase {
 		status = "active",
 		ragflowId,
 	}: CreateTenantRequest): Promise<CreateTenantResult> {
-		// Verificar se o subdomínio já está em uso
 		const tenantWithSameSubdomain =
 			await this.tenantsRepository.findBySubdomain(subdomain);
 
@@ -58,14 +44,12 @@ export class CreateTenantUseCase {
 			return left(new SubdomainAlreadyInUseError(subdomain));
 		}
 
-		// Verificar se o usuário proprietário existe
 		const owner = await this.usersRepository.findById(ownerId);
 
 		if (!owner) {
-			return left(new UserNotFoundError(ownerId));
+			return left(new UserNotFoundError());
 		}
 
-		// Criar o tenant
 		const tenant = await this.tenantsRepository.create({
 			name,
 			subdomain,

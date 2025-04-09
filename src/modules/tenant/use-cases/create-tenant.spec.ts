@@ -3,14 +3,12 @@ import assert from "node:assert";
 
 import { InMemoryTenantsRepository } from "@/repositories/in-memory/in-memory-tenants-repositories.js";
 import { InMemoryUsersRepository } from "@/repositories/in-memory/in-memory-users-repositories.js";
-import {
-	CreateTenantUseCase,
-	SubdomainAlreadyInUseError,
-	UserNotFoundError,
-} from "./create-tenant.js";
+import { CreateTenantUseCase } from "./create-tenant.js";
 import { createUserInRepository } from "@/core/entities/test/make-user.ts";
 import { addTenantToInMemoryRepository } from "@/core/entities/test/make-tenant.ts";
 import { DomainEvents } from "@/core/events/domain-events.js";
+import { SubdomainAlreadyInUseError } from "../errors/tenant.errors.ts";
+import { UserNotFoundError } from "@/modules/account/errors/account.errors.ts";
 
 describe("CreateTenantUseCase", () => {
 	let tenantsRepository: InMemoryTenantsRepository;
@@ -129,10 +127,7 @@ describe("CreateTenantUseCase", () => {
 
 		if (result.isLeft()) {
 			assert.ok(result.value instanceof UserNotFoundError);
-			assert.strictEqual(
-				result.value.message,
-				'User with ID "non-existent-user-id" not found.',
-			);
+			assert.strictEqual(result.value.message, "User not found");
 		}
 	});
 });
