@@ -1,5 +1,5 @@
 export const PERMISSIONS = {
-	// Permissões de usuários
+	// Permissions for users
 	USERS_VIEW: "users:view",
 	USERS_CREATE: "users:create",
 	USERS_EDIT: "users:edit",
@@ -7,24 +7,24 @@ export const PERMISSIONS = {
 	USERS_DELETE_ADMIN: "users:delete-admin",
 	USERS_CHANGE_ROLE: "users:change-role",
 
-	// Permissões de tenant
+	// Permissions for tenants
 	TENANT_EDIT: "tenant:edit",
 	TENANT_DELETE: "tenant:delete",
 	TENANTS_VIEW: "tenants:view",
 
-	// Permissões de chatbots
+	// Permissions for chatbots
 	BOTS_VIEW: "bots:view",
 	BOTS_CREATE: "bots:create",
 	BOTS_EDIT: "bots:edit",
 	BOTS_DELETE: "bots:delete",
 
-	// Permissões de conhecimento
+	// Permissions for knowledge
 	KNOWLEDGE_VIEW: "knowledge:view",
 	KNOWLEDGE_CREATE: "knowledge:create",
 	KNOWLEDGE_EDIT: "knowledge:edit",
 	KNOWLEDGE_DELETE: "knowledge:delete",
 
-	// Permissões de conversas
+	// Permissions for conversations
 	CONVERSATIONS_VIEW: "conversations:view",
 	CONVERSATIONS_TAKEOVER: "conversations:takeover",
 };
