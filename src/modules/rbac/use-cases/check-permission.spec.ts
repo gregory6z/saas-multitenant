@@ -38,7 +38,7 @@ describe("CheckPermissionUseCase", () => {
 
 	test("should deny access when user doesn't have the required permission", async () => {
 		// Vamos usar uma permissão que sabemos que não existe para a role 'user'
-		const permission = "super_admin_only_permission";
+		const permission = "owner_only_permission";
 
 		const result = await sut.execute({
 			userId: "user-1",
@@ -116,7 +116,7 @@ describe("CheckPermissionUseCase", () => {
 	test("should respect permission hierarchy", async () => {
 		// Verificar se temos as roles necessárias para o teste
 		if (
-			!ROLE_PERMISSIONS.super_admin ||
+			!ROLE_PERMISSIONS.owner ||
 			!ROLE_PERMISSIONS.admin ||
 			!ROLE_PERMISSIONS.user
 		) {
@@ -127,8 +127,8 @@ describe("CheckPermissionUseCase", () => {
 			return;
 		}
 
-		// Encontrar uma permissão que super_admin tem mas admin não tem
-		const superAdminPermission = ROLE_PERMISSIONS.super_admin.find(
+		// Encontrar uma permissão que owner tem mas admin não tem
+		const superAdminPermission = ROLE_PERMISSIONS.owner.find(
 			(p) => !ROLE_PERMISSIONS.admin.includes(p),
 		);
 
@@ -137,13 +137,13 @@ describe("CheckPermissionUseCase", () => {
 			const superAdminResult = await sut.execute({
 				userId: "user-1",
 				tenantId: "tenant-1",
-				userRole: "super_admin",
+				userRole: "owner",
 				permission: superAdminPermission,
 			});
 
 			assert.ok(
 				superAdminResult.isRight(),
-				`super_admin deveria ter permissão '${superAdminPermission}'`,
+				`owner deveria ter permissão '${superAdminPermission}'`,
 			);
 
 			// Admin não deve ter esta permissão
@@ -159,9 +159,7 @@ describe("CheckPermissionUseCase", () => {
 				`admin não deveria ter permissão '${superAdminPermission}'`,
 			);
 		} else {
-			console.log(
-				"Não foi encontrada uma permissão exclusiva para super_admin",
-			);
+			console.log("Não foi encontrada uma permissão exclusiva para owner");
 		}
 
 		// Encontrar uma permissão que admin tem mas user não tem

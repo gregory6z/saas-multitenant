@@ -72,7 +72,7 @@ export class CreateTenantUseCase {
 			email: "owner@example.com",
 			passwordHash: "hashed-password",
 			tenantId: tenant.id,
-			role: "super_admin",
+			role: "owner",
 		});
 
 		return right({

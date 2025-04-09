@@ -17,7 +17,7 @@ export interface VerificationData {
 	verifiedAt: Date | null;
 }
 
-export type UserRole = "super_admin" | "admin" | "manager" | "user";
+export type UserRole = "owner" | "admin" | "curator" | "user";
 
 export interface CreateUserDTO {
 	name: string;

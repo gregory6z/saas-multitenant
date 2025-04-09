@@ -67,7 +67,7 @@ export class DeleteUserUseCase {
 		}
 
 		// Caso especial: verificar permissão especial para excluir admins
-		if (user.role === "admin" || user.role === "super_admin") {
+		if (user.role === "admin" || user.role === "owner") {
 			const deleteAdminCheck = await this.checkPermissionUseCase.execute({
 				userRole: currentUserRole,
 				permission: PERMISSIONS.USERS_DELETE_ADMIN,

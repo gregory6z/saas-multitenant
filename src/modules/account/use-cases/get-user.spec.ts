@@ -99,13 +99,13 @@ describe("GetUserUseCase", () => {
 		assert.strictEqual(result.value.user.role, "admin");
 	});
 
-	test("should retrieve a manager user from the same tenant", async () => {
-		// Create a manager user
-		const managerUser = await createUserInRepository(usersRepository, {
-			name: "Manager User",
-			email: "manager@example.com",
+	test("should retrieve a curator user from the same tenant", async () => {
+		// Create a curator user
+		const curatorUser = await createUserInRepository(usersRepository, {
+			name: "curator User",
+			email: "curator@example.com",
 			tenantId: "tenant-1",
-			role: "manager",
+			role: "curator",
 			emailVerification: {
 				token: null,
 				expiresAt: null,
@@ -115,12 +115,12 @@ describe("GetUserUseCase", () => {
 		});
 
 		const result = await sut.execute({
-			userId: managerUser.id,
+			userId: curatorUser.id,
 			tenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
-		assert.strictEqual(result.value.user.id, managerUser.id);
-		assert.strictEqual(result.value.user.role, "manager");
+		assert.strictEqual(result.value.user.id, curatorUser.id);
+		assert.strictEqual(result.value.user.role, "curator");
 	});
 });

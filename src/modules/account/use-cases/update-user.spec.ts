@@ -90,7 +90,7 @@ describe("UpdateUserService", () => {
 		const result = await sut.execute({
 			userId,
 			tenantId: "tenant-1",
-			role: "manager",
+			role: "curator",
 			currentUserRole: "admin",
 		});
 
@@ -98,7 +98,7 @@ describe("UpdateUserService", () => {
 
 		if (result.isRight()) {
 			const { user } = result.value;
-			assert.strictEqual(user.role, "manager");
+			assert.strictEqual(user.role, "curator");
 		}
 	});
 
@@ -206,7 +206,7 @@ describe("UpdateUserService", () => {
 			email: "john-updated@example.com",
 			password: "new-password",
 			currentUserRole: "admin",
-			role: "manager",
+			role: "curator",
 		});
 
 		assert.ok(result.isRight());
@@ -216,7 +216,7 @@ describe("UpdateUserService", () => {
 			assert.strictEqual(user.name, "John Updated");
 			assert.strictEqual(user.email, "john-updated@example.com");
 			assert.strictEqual(user.passwordHash, "hashed:new-password");
-			assert.strictEqual(user.role, "manager");
+			assert.strictEqual(user.role, "curator");
 		}
 	});
 });

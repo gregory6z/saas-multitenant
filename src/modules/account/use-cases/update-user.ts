@@ -14,8 +14,8 @@ interface UpdateUserRequest {
 	name?: string;
 	email?: string;
 	password?: string;
-	role?: "admin" | "manager" | "user";
-	currentUserRole: "admin" | "manager" | "user";
+	role?: "admin" | "curator" | "user";
+	currentUserRole: "admin" | "curator" | "user";
 }
 
 interface UpdateUserResponse {

@@ -12,7 +12,7 @@ interface CreateAccountRequest {
 	email: string;
 	password: string;
 	tenantId: string;
-	role?: "admin" | "manager" | "user";
+	role?: "admin" | "curator" | "user";
 	generateVerificationToken?: boolean;
 }
 

@@ -107,9 +107,9 @@ describe("DeleteUserUseCase", () => {
 
 		// Adicionar o usuário com permissões limitadas
 		addUserToInMemoryRepository(usersRepository, {
-			id: "manager-1",
+			id: "curator-1",
 			tenantId: "tenant-1",
-			role: "manager",
+			role: "curator",
 		});
 
 		// Adicionar o usuário que tentará ser excluído
@@ -121,8 +121,8 @@ describe("DeleteUserUseCase", () => {
 
 		const result = await sut.execute({
 			userId: "user-1",
-			currentUserId: "manager-1",
-			currentUserRole: "manager",
+			currentUserId: "curator-1",
+			currentUserRole: "curator",
 			currentUserTenantId: "tenant-1",
 		});
 
@@ -169,11 +169,11 @@ describe("DeleteUserUseCase", () => {
 			PERMISSIONS.USERS_DELETE_ADMIN,
 		]);
 
-		// Adicionar o super_admin que fará a exclusão
+		// Adicionar o owner que fará a exclusão
 		addUserToInMemoryRepository(usersRepository, {
 			id: "super-admin-1",
 			tenantId: "tenant-1",
-			role: "super_admin",
+			role: "owner",
 		});
 
 		// Adicionar o admin que será excluído
@@ -186,12 +186,12 @@ describe("DeleteUserUseCase", () => {
 		const result = await sut.execute({
 			userId: "admin-1",
 			currentUserId: "super-admin-1",
-			currentUserRole: "super_admin",
+			currentUserRole: "owner",
 			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
-		assert.strictEqual(usersRepository.items.length, 1); // Apenas o super_admin permanece
+		assert.strictEqual(usersRepository.items.length, 1); // Apenas o owner permanece
 		assert.strictEqual(usersRepository.items[0].id, "super-admin-1");
 	});
 

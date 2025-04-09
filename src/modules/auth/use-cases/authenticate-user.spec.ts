@@ -195,7 +195,7 @@ describe("AuthenticateUserUseCase", () => {
 			email: "same@example.com",
 			passwordHash: hashedPassword,
 			tenantId: "tenant-2",
-			role: "manager",
+			role: "curator",
 		});
 
 		// Act - Without specifying tenant, should return the first found
@@ -233,7 +233,7 @@ describe("AuthenticateUserUseCase", () => {
 			email: "same@example.com",
 			passwordHash: await hashProvider.generateHash("different-password"),
 			tenantId: "tenant-2",
-			role: "manager",
+			role: "curator",
 		});
 
 		// Act - Without specifying tenant, should return the first found
@@ -270,7 +270,7 @@ describe("AuthenticateUserUseCase", () => {
 			email: "same@example.com",
 			passwordHash: hashedPassword,
 			tenantId: "tenant-2",
-			role: "manager",
+			role: "curator",
 		});
 
 		const result = await sut.execute({
