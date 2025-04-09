@@ -4,3 +4,24 @@ export class SubdomainAlreadyInUseError extends Error {
 		this.name = "SubdomainAlreadyInUseError";
 	}
 }
+
+export class TenantNotFoundError extends Error {
+	constructor() {
+		super("Tenant não encontrado");
+		this.name = "TenantNotFoundError";
+	}
+}
+
+export class UnauthorizedTenantAccessError extends Error {
+	constructor() {
+		super("Acesso não autorizado a este tenant");
+		this.name = "UnauthorizedTenantAccessError";
+	}
+}
+
+export class CrossTenantOperationError extends Error {
+	constructor() {
+		super("Não é permitido acessar dados de outro tenant");
+		this.name = "CrossTenantOperationError";
+	}
+}

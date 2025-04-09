@@ -10,6 +10,7 @@ export const PERMISSIONS = {
 	// Permissões de tenant
 	TENANT_EDIT: "tenant:edit",
 	TENANT_DELETE: "tenant:delete",
+	TENANTS_VIEW: "tenants:view",
 
 	// Permissões de chatbots
 	BOTS_VIEW: "bots:view",
