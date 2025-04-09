@@ -28,7 +28,7 @@ describe("GetTenantUseCase", () => {
 
 	test("should be able to get tenant information when user has permission", async () => {
 		// Configurar permissão para visualizar tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANTS_VIEW);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_VIEW);
 
 		// Adicionar um tenant ao repositório usando a função utilitária
 		const tenant = addTenantToInMemoryRepository(tenantsRepository, {
@@ -56,7 +56,7 @@ describe("GetTenantUseCase", () => {
 	});
 
 	test("should not be able to get tenant information without proper permission", async () => {
-		// Não configuramos a permissão TENANTS_VIEW, então será negada
+		// Não configuramos a permissão TENANT_VIEW, então será negada
 
 		// Adicionar um tenant ao repositório usando a função utilitária
 		addTenantToInMemoryRepository(tenantsRepository, {
@@ -79,7 +79,7 @@ describe("GetTenantUseCase", () => {
 
 	test("should not be able to get information from another tenant", async () => {
 		// Configurar permissão para visualizar tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANTS_VIEW);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_VIEW);
 
 		// Adicionar dois tenants ao repositório usando a função utilitária
 		addTenantToInMemoryRepository(tenantsRepository, {
@@ -109,7 +109,7 @@ describe("GetTenantUseCase", () => {
 
 	test("should return error when tenant is not found", async () => {
 		// Configurar permissão para visualizar tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANTS_VIEW);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_VIEW);
 
 		const result = await sut.execute({
 			tenantId: "non-existent-tenant",
@@ -124,7 +124,7 @@ describe("GetTenantUseCase", () => {
 
 	test("should return tenant with correct active status based on tenant status", async () => {
 		// Configurar permissão para visualizar tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANTS_VIEW);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_VIEW);
 
 		// Adicionar tenants com diferentes status usando a função utilitária
 		addTenantToInMemoryRepository(tenantsRepository, {

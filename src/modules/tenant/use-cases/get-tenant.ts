@@ -57,7 +57,7 @@ export class GetTenantUseCase {
 
 		const viewPermissionCheck = await this.checkPermissionUseCase.execute({
 			userRole: currentUserRole,
-			permission: PERMISSIONS.TENANTS_VIEW,
+			permission: PERMISSIONS.TENANT_VIEW,
 			userId: currentUserId,
 			tenantId: currentUserTenantId,
 		});
