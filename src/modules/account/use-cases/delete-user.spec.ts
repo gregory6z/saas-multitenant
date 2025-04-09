@@ -2,264 +2,216 @@ import { test, describe, beforeEach } from "node:test";
 import assert from "node:assert";
 
 import { InMemoryUsersRepository } from "@/repositories/in-memory/in-memory-users-repositories.js";
-import { DeleteUserUseCase } from "./delete-user.js";
+import { DeleteUserUseCase } from "./delete-user.ts";
+import { addUserToInMemoryRepository } from "@/core/entities/test/make-user.ts";
 import {
-	UnauthorizedOperationError,
 	UserNotFoundError,
+	UnauthorizedOperationError,
 	CrossTenantOperationError,
 } from "../errors/account.errors.ts";
-import { createUserInRepository } from "@/core/entities/test/make-user.ts";
+import { PERMISSIONS } from "@/modules/rbac/constants/permissions.js";
+import { InMemoryCheckPermissionUseCase } from "@/modules/rbac/use-cases/test/in-memory-check-permission.ts";
 
 describe("DeleteUserUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
+	let checkPermissionUseCase: InMemoryCheckPermissionUseCase;
 	let sut: DeleteUserUseCase;
 
 	beforeEach(() => {
 		usersRepository = new InMemoryUsersRepository();
-		sut = new DeleteUserUseCase(usersRepository);
+		checkPermissionUseCase = new InMemoryCheckPermissionUseCase();
+		sut = new DeleteUserUseCase(usersRepository, checkPermissionUseCase);
+
+		// Limpar permissões antes de cada teste
+		checkPermissionUseCase.clearPermissions();
 	});
 
-	test("should allow an admin to delete a regular user", async () => {
-		const adminUser = await createUserInRepository(usersRepository, {
-			name: "Admin User",
-			email: "admin@example.com",
-			tenantId: "tenant-1",
-			role: "admin",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: true,
-				verifiedAt: new Date(),
-			},
-		});
-
-		const userToDelete = await createUserInRepository(usersRepository, {
-			name: "User to Delete",
-			email: "user@example.com",
+	test("should be able to delete own user account", async () => {
+		// Adicionar o usuário que será excluído
+		addUserToInMemoryRepository(usersRepository, {
+			id: "user-1",
 			tenantId: "tenant-1",
 			role: "user",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: false,
-				verifiedAt: null,
-			},
 		});
 
 		const result = await sut.execute({
-			userId: userToDelete.id,
-			currentUserRole: "admin",
-			currentUserId: adminUser.id,
+			userId: "user-1",
+			currentUserId: "user-1", // Mesmo usuário (excluindo a própria conta)
+			currentUserRole: "user",
 			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
-		assert.strictEqual(await usersRepository.findById(userToDelete.id), null);
+		assert.strictEqual(usersRepository.items.length, 0);
 	});
 
-	test("should not allow an admin to delete another admin", async () => {
-		const adminUser1 = await createUserInRepository(usersRepository, {
-			name: "Admin User 1",
-			email: "admin1@example.com",
+	test("should be able to delete another user when has permission", async () => {
+		// Configurar permissão para excluir usuários
+		checkPermissionUseCase.allowPermission(PERMISSIONS.USERS_DELETE);
+
+		// Adicionar o admin que fará a exclusão
+		addUserToInMemoryRepository(usersRepository, {
+			id: "admin-1",
 			tenantId: "tenant-1",
 			role: "admin",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: true,
-				verifiedAt: new Date(),
-			},
 		});
 
-		const adminUser2 = await createUserInRepository(usersRepository, {
-			name: "Admin User 2",
-			email: "admin2@example.com",
+		// Adicionar o usuário que será excluído
+		addUserToInMemoryRepository(usersRepository, {
+			id: "user-1",
 			tenantId: "tenant-1",
-			role: "admin",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: true,
-				verifiedAt: new Date(),
-			},
+			role: "user",
 		});
 
 		const result = await sut.execute({
-			userId: adminUser2.id,
+			userId: "user-1",
+			currentUserId: "admin-1",
 			currentUserRole: "admin",
-			currentUserId: adminUser1.id,
 			currentUserTenantId: "tenant-1",
 		});
 
-		assert.ok(result.isLeft());
-		assert.ok(result.value instanceof UnauthorizedOperationError);
-		assert.ok(await usersRepository.findById(adminUser2.id));
+		assert.ok(result.isRight());
+		assert.strictEqual(usersRepository.items.length, 1); // Apenas o admin permanece
+		assert.strictEqual(usersRepository.items[0].id, "admin-1");
 	});
 
-	test("should not allow an admin to delete a user from another tenant", async () => {
-		const adminUser = await createUserInRepository(usersRepository, {
-			name: "Admin User",
-			email: "admin@example.com",
+	test("should not be able to delete a user from another tenant", async () => {
+		// Adicionar o admin que tentará fazer a exclusão
+		addUserToInMemoryRepository(usersRepository, {
+			id: "admin-1",
 			tenantId: "tenant-1",
 			role: "admin",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: true,
-				verifiedAt: new Date(),
-			},
 		});
 
-		const userInOtherTenant = await createUserInRepository(usersRepository, {
-			name: "User in Other Tenant",
-			email: "user@example.com",
-			tenantId: "tenant-2",
+		// Adicionar o usuário de outro tenant que tentará ser excluído
+		addUserToInMemoryRepository(usersRepository, {
+			id: "user-1",
+			tenantId: "tenant-2", // Tenant diferente
 			role: "user",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: false,
-				verifiedAt: null,
-			},
 		});
 
 		const result = await sut.execute({
-			userId: userInOtherTenant.id,
+			userId: "user-1",
+			currentUserId: "admin-1",
 			currentUserRole: "admin",
-			currentUserId: adminUser.id,
 			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());
 		assert.ok(result.value instanceof CrossTenantOperationError);
-		assert.ok(await usersRepository.findById(userInOtherTenant.id));
+		assert.strictEqual(usersRepository.items.length, 2); // Nenhum usuário foi excluído
 	});
 
-	test("should allow a user to delete their own account", async () => {
-		const user = await createUserInRepository(usersRepository, {
-			name: "Regular User",
-			email: "user@example.com",
+	test("should not be able to delete a user without proper permission", async () => {
+		// Não configuramos a permissão USERS_DELETE, então ela será negada por padrão
+
+		// Adicionar o usuário com permissões limitadas
+		addUserToInMemoryRepository(usersRepository, {
+			id: "manager-1",
+			tenantId: "tenant-1",
+			role: "manager",
+		});
+
+		// Adicionar o usuário que tentará ser excluído
+		addUserToInMemoryRepository(usersRepository, {
+			id: "user-1",
 			tenantId: "tenant-1",
 			role: "user",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: false,
-				verifiedAt: null,
-			},
 		});
 
 		const result = await sut.execute({
-			userId: user.id,
-			currentUserRole: "user",
-			currentUserId: user.id,
+			userId: "user-1",
+			currentUserId: "manager-1",
+			currentUserRole: "manager",
+			currentUserTenantId: "tenant-1",
+		});
+
+		assert.ok(result.isLeft());
+		assert.ok(result.value instanceof UnauthorizedOperationError);
+		assert.strictEqual(usersRepository.items.length, 2); // Nenhum usuário foi excluído
+	});
+
+	test("should not be able to delete an admin user without special permission", async () => {
+		// Configurar permissões - permitir excluir usuários normais, mas não admins
+		checkPermissionUseCase.allowPermission(PERMISSIONS.USERS_DELETE);
+		// Não configuramos USERS_DELETE_ADMIN, então será negada por padrão
+
+		// Adicionar o admin que tentará fazer a exclusão
+		addUserToInMemoryRepository(usersRepository, {
+			id: "admin-1",
+			tenantId: "tenant-1",
+			role: "admin",
+		});
+
+		// Adicionar outro admin que tentará ser excluído
+		addUserToInMemoryRepository(usersRepository, {
+			id: "admin-2",
+			tenantId: "tenant-1",
+			role: "admin",
+		});
+
+		const result = await sut.execute({
+			userId: "admin-2",
+			currentUserId: "admin-1",
+			currentUserRole: "admin",
+			currentUserTenantId: "tenant-1",
+		});
+
+		assert.ok(result.isLeft());
+		assert.ok(result.value instanceof UnauthorizedOperationError);
+		assert.strictEqual(usersRepository.items.length, 2); // Nenhum usuário foi excluído
+	});
+
+	test("should be able to delete an admin user with special permission", async () => {
+		// Configurar múltiplas permissões de uma vez
+		checkPermissionUseCase.allowPermissions([
+			PERMISSIONS.USERS_DELETE,
+			PERMISSIONS.USERS_DELETE_ADMIN,
+		]);
+
+		// Adicionar o super_admin que fará a exclusão
+		addUserToInMemoryRepository(usersRepository, {
+			id: "super-admin-1",
+			tenantId: "tenant-1",
+			role: "super_admin",
+		});
+
+		// Adicionar o admin que será excluído
+		addUserToInMemoryRepository(usersRepository, {
+			id: "admin-1",
+			tenantId: "tenant-1",
+			role: "admin",
+		});
+
+		const result = await sut.execute({
+			userId: "admin-1",
+			currentUserId: "super-admin-1",
+			currentUserRole: "super_admin",
 			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
-		assert.strictEqual(await usersRepository.findById(user.id), null);
+		assert.strictEqual(usersRepository.items.length, 1); // Apenas o super_admin permanece
+		assert.strictEqual(usersRepository.items[0].id, "super-admin-1");
 	});
 
-	test("should not allow a regular user to delete another user", async () => {
-		const user = await createUserInRepository(usersRepository, {
-			name: "Regular User",
-			email: "user@example.com",
-			tenantId: "tenant-1",
-			role: "user",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: false,
-				verifiedAt: null,
-			},
-		});
-
-		const anotherUser = await createUserInRepository(usersRepository, {
-			name: "Another User",
-			email: "another@example.com",
-			tenantId: "tenant-1",
-			role: "user",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: false,
-				verifiedAt: null,
-			},
-		});
-
-		const result = await sut.execute({
-			userId: anotherUser.id,
-			currentUserRole: "user",
-			currentUserId: user.id,
-			currentUserTenantId: "tenant-1",
-		});
-
-		assert.ok(result.isLeft());
-		assert.ok(result.value instanceof UnauthorizedOperationError);
-		assert.ok(await usersRepository.findById(anotherUser.id));
-	});
-
-	test("should not allow a manager to delete another user", async () => {
-		const manager = await createUserInRepository(usersRepository, {
-			name: "Manager User",
-			email: "manager@example.com",
-			tenantId: "tenant-1",
-			role: "manager",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: true,
-				verifiedAt: new Date(),
-			},
-		});
-
-		const user = await createUserInRepository(usersRepository, {
-			name: "Regular User",
-			email: "user@example.com",
-			tenantId: "tenant-1",
-			role: "user",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: false,
-				verifiedAt: null,
-			},
-		});
-
-		const result = await sut.execute({
-			userId: user.id,
-			currentUserRole: "manager",
-			currentUserId: manager.id,
-			currentUserTenantId: "tenant-1",
-		});
-
-		assert.ok(result.isLeft());
-		assert.ok(result.value instanceof UnauthorizedOperationError);
-		assert.ok(await usersRepository.findById(user.id));
-	});
-
-	test("should return an error when the user to be deleted does not exist", async () => {
-		const admin = await createUserInRepository(usersRepository, {
-			name: "Admin User",
-			email: "admin@example.com",
+	test("should return error when trying to delete non-existent user", async () => {
+		// Adicionar o admin que tentará fazer a exclusão
+		addUserToInMemoryRepository(usersRepository, {
+			id: "admin-1",
 			tenantId: "tenant-1",
 			role: "admin",
-			emailVerification: {
-				token: null,
-				expiresAt: null,
-				verified: true,
-				verifiedAt: new Date(),
-			},
 		});
 
 		const result = await sut.execute({
 			userId: "non-existent-user",
+			currentUserId: "admin-1",
 			currentUserRole: "admin",
-			currentUserId: admin.id,
 			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());
 		assert.ok(result.value instanceof UserNotFoundError);
+		assert.strictEqual(usersRepository.items.length, 1); // Nenhuma alteração no repositório
 	});
 });
