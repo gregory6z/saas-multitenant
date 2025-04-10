@@ -23,4 +23,5 @@ export interface TenantsRepository {
 	create(data: CreateTenantDTO): Promise<Tenant>;
 	update(id: string, data: UpdateTenantDTO): Promise<Tenant | null>;
 	delete(id: string): Promise<void>;
+	findBySubdomain(subdomain: string): Promise<Tenant | null>;
 }

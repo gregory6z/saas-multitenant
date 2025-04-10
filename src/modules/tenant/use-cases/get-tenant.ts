@@ -1,4 +1,5 @@
 import { left, right, type Either } from "@/core/either.js";
+import type { Tenant } from "@/core/entities/Tenant.js";
 import type { CheckPermissionUseCase } from "@/modules/rbac/use-cases/check-permission.js";
 import { PERMISSIONS } from "@/modules/rbac/constants/permissions.js";
 import {
@@ -16,14 +17,7 @@ interface GetTenantRequest {
 }
 
 interface GetTenantResponse {
-	tenant: {
-		id: string;
-		name: string;
-		domain: string;
-		isActive: boolean;
-		createdAt: Date;
-		updatedAt: Date;
-	};
+	tenant: Tenant;
 }
 
 type GetTenantResult = Either<
@@ -57,7 +51,7 @@ export class GetTenantUseCase {
 
 		const viewPermissionCheck = await this.checkPermissionUseCase.execute({
 			userRole: currentUserRole,
-			permission: PERMISSIONS.TENANT_VIEW,
+			permission: PERMISSIONS.TENANTS_VIEW,
 			userId: currentUserId,
 			tenantId: currentUserTenantId,
 		});
@@ -67,14 +61,7 @@ export class GetTenantUseCase {
 		}
 
 		return right({
-			tenant: {
-				id: tenant.id,
-				name: tenant.name,
-				domain: tenant.subdomain,
-				isActive: tenant.status === "active",
-				createdAt: tenant.createdAt,
-				updatedAt: tenant.updatedAt,
-			},
+			tenant,
 		});
 	}
 }
