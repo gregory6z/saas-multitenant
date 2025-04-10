@@ -38,3 +38,19 @@ export class CrossTenantOperationError extends Error {
 		this.name = "CrossTenantOperationError";
 	}
 }
+
+// Adicionar estes erros ao arquivo existente
+
+export class UserAlreadyInTenantError extends Error {
+	constructor(userId: string, tenantId: string) {
+		super(`User ${userId} is already associated with tenant ${tenantId}`);
+		this.name = "UserAlreadyInTenantError";
+	}
+}
+
+export class InvalidRoleError extends Error {
+	constructor(role: string) {
+		super(`Invalid role: ${role}`);
+		this.name = "InvalidRoleError";
+	}
+}

@@ -1,109 +1,113 @@
-// import { left, right, type Either } from "@/core/either.js";
-// import type { User } from "@/core/entities/User.js";
-// import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
-// import type { TenantsRepository } from "@/repositories/interfaces/tenants-repositories.interfaces.js";
-// import type { CheckPermissionUseCase } from "@/modules/rbac/use-cases/check-permission.js";
-// import { PERMISSIONS } from "@/modules/rbac/constants/permissions.js";
-// import {
-// 	UserNotFoundError,
-// 	UnauthorizedOperationError,
-// 	EmailAlreadyInUseError,
-// } from "../errors/account.errors.ts";
-// import { TenantNotFoundError } from "@/modules/tenant/errors/tenant.errors.ts";
+import { left, right, type Either } from "@/core/either.js";
+import type { User } from "@/core/entities/User.js";
+import type {
+	UserTenantRole,
+	UserRole,
+} from "@/core/entities/UserTenantRole.js";
+import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
+import type { TenantsRepository } from "@/repositories/interfaces/tenants-repositories.interfaces.js";
+import type { UserTenantRolesRepository } from "@/repositories/interfaces/user-tenant-roles-repository.interfaces.js";
+import type { CheckPermissionUseCase } from "@/modules/rbac/use-cases/check-permission.js";
+import { PERMISSIONS } from "@/modules/rbac/constants/permissions.js";
+import {
+	UserNotFoundError,
+	UnauthorizedOperationError,
+	UserAlreadyInTenantError,
+	InvalidRoleError,
+} from "../errors/account.errors.ts";
+import { TenantNotFoundError } from "@/modules/tenant/errors/tenant.errors.ts";
 
-// interface AssignUserToTenantRequest {
-// 	email: string;
-// 	targetTenantId: string;
-// 	role?: "admin" | "curator" | "user";
-// 	currentUserId: string;
-// 	currentUserRole: string;
-// 	currentUserTenantId: string;
-// }
+interface AssignUserToTenantRequest {
+	userId: string;
+	targetTenantId: string;
+	role: UserRole;
+	currentUserId: string;
+	currentUserRole: string;
+	currentUserTenantId: string;
+}
 
-// interface AssignUserToTenantResponse {
-// 	user: User;
-// }
+interface AssignUserToTenantResponse {
+	user: User;
+	membership: UserTenantRole;
+}
 
-// type AssignUserToTenantError =
-// 	| UserNotFoundError
-// 	| TenantNotFoundError
-// 	| UnauthorizedOperationError
-// 	| EmailAlreadyInUseError;
+type AssignUserToTenantError =
+	| UserNotFoundError
+	| TenantNotFoundError
+	| UnauthorizedOperationError
+	| UserAlreadyInTenantError
+	| InvalidRoleError;
 
-// type AssignUserToTenantResult = Either<
-// 	AssignUserToTenantError,
-// 	AssignUserToTenantResponse
-// >;
+type AssignUserToTenantResult = Either<
+	AssignUserToTenantError,
+	AssignUserToTenantResponse
+>;
 
-// export class AssignUserToTenantUseCase {
-// 	constructor(
-// 		private usersRepository: UsersRepository,
-// 		private tenantsRepository: TenantsRepository,
-// 		private checkPermissionUseCase: CheckPermissionUseCase,
-// 	) {}
+export class AssignUserToTenantUseCase {
+	constructor(
+		private usersRepository: UsersRepository,
+		private tenantsRepository: TenantsRepository,
+		private userTenantRolesRepository: UserTenantRolesRepository,
+		private checkPermissionUseCase: CheckPermissionUseCase,
+	) {}
 
-// 	async execute({
-// 		email,
-// 		targetTenantId,
-// 		role = "user",
-// 		currentUserId,
-// 		currentUserRole,
-// 		currentUserTenantId,
-// 	}: AssignUserToTenantRequest): Promise<AssignUserToTenantResult> {
-// 		// Verificar se o usuário atual tem permissão para adicionar usuários ao tenant
-// 		const permissionCheck = await this.checkPermissionUseCase.execute({
-// 			userRole: currentUserRole,
-// 			permission: PERMISSIONS.TENANT_ASSIGN_USERS,
-// 			userId: currentUserId,
-// 			tenantId: currentUserTenantId,
-// 		});
+	async execute({
+		userId,
+		targetTenantId,
+		role,
+		currentUserId,
+		currentUserRole,
+		currentUserTenantId,
+	}: AssignUserToTenantRequest): Promise<AssignUserToTenantResult> {
+		// Verificar se o usuário atual tem permissão para adicionar usuários ao tenant
+		const permissionCheck = await this.checkPermissionUseCase.execute({
+			userRole: currentUserRole,
+			permission: PERMISSIONS.TENANT_ASSIGN_USERS,
+			userId: currentUserId,
+			tenantId: currentUserTenantId,
+		});
 
-// 		if (permissionCheck.isLeft()) {
-// 			return left(new UnauthorizedOperationError());
-// 		}
+		if (permissionCheck.isLeft()) {
+			return left(new UnauthorizedOperationError());
+		}
 
-// 		// Verificar se o tenant existe
-// 		const tenant = await this.tenantsRepository.findById(targetTenantId);
-// 		if (!tenant) {
-// 			return left(new TenantNotFoundError());
-// 		}
+		// Verificar se a role é válida
+		const validRoles: UserRole[] = ["owner", "admin", "curator", "user"];
+		if (!validRoles.includes(role)) {
+			return left(new InvalidRoleError(role));
+		}
 
-// 		// Verificar se o usuário já existe no tenant alvo
-// 		const existingUserInTenant = await this.usersRepository.findByEmail(
-// 			email,
-// 			targetTenantId,
-// 		);
+		const user = await this.usersRepository.findById(userId);
+		if (!user) {
+			return left(new UserNotFoundError());
+		}
 
-// 		if (existingUserInTenant) {
-// 			return left(new EmailAlreadyInUseError(email));
-// 		}
+		const tenant = await this.tenantsRepository.findById(targetTenantId);
+		if (!tenant) {
+			return left(new TenantNotFoundError());
+		}
 
-// 		// Buscar o usuário em qualquer tenant para obter suas informações básicas
-// 		// Isso é necessário porque precisamos de informações como passwordHash
-// 		const existingUser =
-// 			await this.usersRepository.findByEmailInAnyTenant(email);
+		// Verificar se o usuário já está associado ao tenant
+		const existingMembership =
+			await this.userTenantRolesRepository.findByUserAndTenant(
+				userId,
+				targetTenantId,
+			);
 
-// 		if (!existingUser) {
-// 			return left(new UserNotFoundError());
-// 		}
+		if (existingMembership) {
+			return left(new UserAlreadyInTenantError(userId, targetTenantId));
+		}
 
-// 		// Criar uma nova entrada para o usuário no tenant de destino
-// 		const assignedUser = await this.usersRepository.create({
-// 			name: existingUser.name,
-// 			email: existingUser.email,
-// 			passwordHash: existingUser.passwordHash,
-// 			tenantId: targetTenantId,
-// 			role: role,
-// 			emailVerification: {
-// 				token: null,
-// 				expiresAt: null,
-// 				verified: true,
-// 				verifiedAt: new Date(),
-// 			},
-// 		});
+		// Criar a associação entre usuário e tenant
+		const membership = await this.userTenantRolesRepository.create({
+			userId,
+			tenantId: targetTenantId,
+			role,
+		});
 
-// 		return right({
-// 			user: assignedUser,
-// 		});
-// 	}
-// }
+		return right({
+			user,
+			membership,
+		});
+	}
+}
