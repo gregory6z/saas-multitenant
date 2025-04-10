@@ -1,7 +1,9 @@
 import type { User } from "@/core/entities/User.js";
+import type { UserTenantRole } from "@/core/entities/UserTenantRole.js";
 import { left, right, type Either } from "@/core/either.js";
 import type { HashProvider } from "@/providers/hash/hash-provider.js";
 import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
+import type { UserTenantRolesRepository } from "@/repositories/interfaces/user-tenant-roles-repository.interfaces.js";
 import { EmailAlreadyInUseError } from "../errors/account.errors.ts";
 import { randomUUID } from "node:crypto";
 import { DomainEvents } from "@/core/events/domain-events.js";
@@ -11,11 +13,14 @@ interface CreateAccountRequest {
 	name: string;
 	email: string;
 	password: string;
+	tenantId: string;
+	role?: "owner" | "admin" | "curator" | "user";
 	generateVerificationToken?: boolean;
 }
 
 interface CreateAccountResponse {
 	user: User;
+	membership: UserTenantRole;
 	verificationToken?: string;
 }
 
@@ -27,6 +32,7 @@ type CreateAccountResult = Either<
 export class CreateAccountUseCase {
 	constructor(
 		private usersRepository: UsersRepository,
+		private userTenantRolesRepository: UserTenantRolesRepository,
 		private hashProvider: HashProvider,
 	) {}
 
@@ -34,6 +40,8 @@ export class CreateAccountUseCase {
 		name,
 		email,
 		password,
+		tenantId,
+		role = "user",
 		generateVerificationToken = true,
 	}: CreateAccountRequest): Promise<CreateAccountResult> {
 		const userWithSameEmail = await this.usersRepository.findByEmail(email);
@@ -61,6 +69,12 @@ export class CreateAccountUseCase {
 			},
 		});
 
+		const membership = await this.userTenantRolesRepository.create({
+			userId: user.id,
+			tenantId,
+			role,
+		});
+
 		if (verificationToken) {
 			DomainEvents.markEvent(
 				new UserCreatedEvent({
@@ -74,6 +88,7 @@ export class CreateAccountUseCase {
 
 		return right({
 			user,
+			membership,
 			verificationToken: verificationToken || undefined,
 		});
 	}
