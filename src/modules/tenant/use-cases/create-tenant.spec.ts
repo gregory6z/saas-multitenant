@@ -3,23 +3,30 @@ import assert from "node:assert";
 
 import { InMemoryTenantsRepository } from "@/repositories/in-memory/in-memory-tenants-repositories.js";
 import { InMemoryUsersRepository } from "@/repositories/in-memory/in-memory-users-repositories.js";
-import { CreateTenantUseCase } from "./create-tenant.js";
+import { InMemoryUserTenantRolesRepository } from "@/repositories/in-memory/in-memory-user-tenant-roles-repository.js";
 import { createUserInRepository } from "@/core/entities/test/make-user.ts";
 import { addTenantToInMemoryRepository } from "@/core/entities/test/make-tenant.ts";
 import { DomainEvents } from "@/core/events/domain-events.js";
 import { SubdomainAlreadyInUseError } from "../errors/tenant.errors.ts";
 import { UserNotFoundError } from "@/modules/account/errors/account.errors.ts";
+import { CreateTenantUseCase } from "@/modules/tenant/use-cases/create-tenant.ts";
 
 describe("CreateTenantUseCase", () => {
 	let tenantsRepository: InMemoryTenantsRepository;
 	let usersRepository: InMemoryUsersRepository;
+	let userTenantRolesRepository: InMemoryUserTenantRolesRepository;
 	let sut: CreateTenantUseCase;
 	let ownerId: string;
 
 	beforeEach(async () => {
 		tenantsRepository = new InMemoryTenantsRepository();
 		usersRepository = new InMemoryUsersRepository();
-		sut = new CreateTenantUseCase(tenantsRepository, usersRepository);
+		userTenantRolesRepository = new InMemoryUserTenantRolesRepository();
+		sut = new CreateTenantUseCase(
+			tenantsRepository,
+			usersRepository,
+			userTenantRolesRepository,
+		);
 
 		// Limpar eventos marcados antes de cada teste
 		DomainEvents.clearMarkedEvents();
@@ -28,7 +35,6 @@ describe("CreateTenantUseCase", () => {
 		const owner = await createUserInRepository(usersRepository, {
 			name: "Owner User",
 			email: "owner@example.com",
-			role: "admin",
 		});
 
 		ownerId = owner.id;
@@ -57,7 +63,15 @@ describe("CreateTenantUseCase", () => {
 			assert.strictEqual(DomainEvents.markedEvents.length, 1);
 			assert.strictEqual(DomainEvents.markedEvents[0].name, "tenant.created");
 
+			// Verificar se o tenant foi criado no repositório
 			assert.strictEqual(tenantsRepository.items.length, 1);
+
+			// Verificar se a associação entre o proprietário e o tenant foi criada
+			const userTenantRoles = userTenantRolesRepository.items;
+			assert.strictEqual(userTenantRoles.length, 1);
+			assert.strictEqual(userTenantRoles[0].userId, ownerId);
+			assert.strictEqual(userTenantRoles[0].tenantId, tenant.id);
+			assert.strictEqual(userTenantRoles[0].role, "owner");
 		}
 	});
 
@@ -74,6 +88,11 @@ describe("CreateTenantUseCase", () => {
 		if (result.isRight()) {
 			const { tenant } = result.value;
 			assert.strictEqual(tenant.status, "inactive");
+
+			// Verificar a associação do proprietário
+			const userTenantRoles = userTenantRolesRepository.items;
+			assert.strictEqual(userTenantRoles.length, 1);
+			assert.strictEqual(userTenantRoles[0].role, "owner");
 		}
 	});
 
@@ -90,6 +109,10 @@ describe("CreateTenantUseCase", () => {
 		if (result.isRight()) {
 			const { tenant } = result.value;
 			assert.strictEqual(tenant.ragflowId, "ragflow-123");
+
+			// Verificar a associação do proprietário
+			const userTenantRoles = userTenantRolesRepository.items;
+			assert.strictEqual(userTenantRoles.length, 1);
 		}
 	});
 
@@ -114,6 +137,9 @@ describe("CreateTenantUseCase", () => {
 				'The subdomain "existing-org" is already in use.',
 			);
 		}
+
+		// Verificar que nenhuma associação foi criada
+		assert.strictEqual(userTenantRolesRepository.items.length, 0);
 	});
 
 	test("should not be able to create a tenant with a non-existent owner", async () => {
@@ -129,5 +155,11 @@ describe("CreateTenantUseCase", () => {
 			assert.ok(result.value instanceof UserNotFoundError);
 			assert.strictEqual(result.value.message, "User not found");
 		}
+
+		// Verificar que nenhum tenant foi criado
+		assert.strictEqual(tenantsRepository.items.length, 0);
+
+		// Verificar que nenhuma associação foi criada
+		assert.strictEqual(userTenantRolesRepository.items.length, 0);
 	});
 });

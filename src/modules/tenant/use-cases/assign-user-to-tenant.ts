@@ -14,7 +14,7 @@ import {
 	UnauthorizedOperationError,
 	UserAlreadyInTenantError,
 	InvalidRoleError,
-} from "../errors/account.errors.ts";
+} from "@/modules/account/errors/account.errors.ts";
 import { TenantNotFoundError } from "@/modules/tenant/errors/tenant.errors.ts";
 
 interface AssignUserToTenantRequest {
