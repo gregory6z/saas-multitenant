@@ -20,6 +20,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
 		PERMISSIONS.TENANT_MANAGE_PLAN,
 		PERMISSIONS.TENANTS_VIEW,
 		PERMISSIONS.TENANT_CHANGE_SUBDOMAIN,
+		PERMISSIONS.TENANT_ASSIGN_USERS,
 
 		// Permissões de chatbots
 		PERMISSIONS.BOTS_VIEW,
@@ -65,6 +66,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
 		// Permissões de tenant (limitadas)
 		PERMISSIONS.TENANT_VIEW,
 		PERMISSIONS.TENANT_EDIT,
+		PERMISSIONS.TENANT_ASSIGN_USERS,
 
 		// Permissões de chatbots
 		PERMISSIONS.BOTS_VIEW,

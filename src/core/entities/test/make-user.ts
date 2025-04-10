@@ -9,11 +9,9 @@ import type { UsersRepository } from "@/repositories/interfaces/users-repositori
 export function makeUser(override: Partial<User> = {}): User {
 	return {
 		id: "user-1",
-		tenantId: "tenant-1",
 		name: "John Doe",
 		email: "john@example.com",
 		passwordHash: "hashed-password",
-		role: "user" as UserRole,
 		createdAt: new Date(),
 		updatedAt: new Date(),
 		emailVerification: {

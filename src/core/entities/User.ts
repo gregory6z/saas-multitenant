@@ -1,10 +1,8 @@
 export interface User {
 	id: string;
-	tenantId: string;
 	name: string;
 	email: string;
 	passwordHash: string;
-	role: UserRole;
 	createdAt: Date;
 	updatedAt: Date;
 	emailVerification: VerificationData;
@@ -23,8 +21,6 @@ export interface CreateUserDTO {
 	name: string;
 	email: string;
 	passwordHash: string;
-	tenantId: string;
-	role: UserRole;
 	emailVerification?: VerificationData;
 }
 
@@ -32,6 +28,5 @@ export interface UpdateUserDTO {
 	name?: string;
 	email?: string;
 	passwordHash?: string;
-	role?: UserRole;
 	emailVerification?: Partial<VerificationData>;
 }

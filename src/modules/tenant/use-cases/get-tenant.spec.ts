@@ -76,7 +76,7 @@ describe("GetTenantUseCase", () => {
 			tenantId: "tenant-1",
 			currentUserId: "user-1",
 			currentUserRole: "user",
-			currentUserTenantId: "tenant-1", // Mesmo tenant
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());

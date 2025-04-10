@@ -1,7 +1,5 @@
 export interface TokenPayload {
 	userId: string;
-	tenantId: string;
-	role: string;
 }
 
 export interface RefreshTokenPayload {

@@ -27,8 +27,6 @@ describe("RefreshTokenUseCase", () => {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		const refreshToken = await tokenProvider.generateRefreshToken({
@@ -49,8 +47,6 @@ describe("RefreshTokenUseCase", () => {
 		// Verify the token contains the correct user information
 		const payload = await tokenProvider.verifyToken(result.value.token);
 		assert.strictEqual(payload.userId, user.id);
-		assert.strictEqual(payload.tenantId, "tenant-1");
-		assert.strictEqual(payload.role, "user");
 	});
 
 	test("should return a new refresh token different from the original", async () => {
@@ -59,8 +55,6 @@ describe("RefreshTokenUseCase", () => {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		const originalRefreshToken = await tokenProvider.generateRefreshToken({
@@ -88,8 +82,6 @@ describe("RefreshTokenUseCase", () => {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		const originalRefreshToken = await tokenProvider.generateRefreshToken({
@@ -150,51 +142,12 @@ describe("RefreshTokenUseCase", () => {
 		assert.ok(result.value instanceof InvalidRefreshTokenError);
 	});
 
-	test("should generate tokens with updated user information if user data changed", async () => {
-		// Arrange
-		const user = await createUserInRepository(usersRepository, {
-			name: "Test User",
-			email: "user@example.com",
-			passwordHash: "hashed-password",
-			tenantId: "tenant-1",
-			role: "user",
-		});
-
-		const refreshToken = await tokenProvider.generateRefreshToken({
-			userId: user.id,
-			family: "family-1",
-		});
-
-		// Update user role
-		await usersRepository.update(user.id, "tenant-1", {
-			role: "admin",
-		});
-
-		// Act
-		const result = await sut.execute({
-			refreshToken,
-		});
-
-		// Assert
-		assert.ok(result.isRight());
-
-		// Verify the new token contains the updated role
-		const payload = await tokenProvider.verifyToken(result.value.token);
-		assert.strictEqual(
-			payload.role,
-			"admin",
-			"Token should contain updated user role",
-		);
-	});
-
 	test("should be able to use the new refresh token for another refresh", async () => {
 		// Arrange
 		const user = await createUserInRepository(usersRepository, {
 			name: "Test User",
 			email: "user@example.com",
 			passwordHash: "hashed-password",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		const originalRefreshToken = await tokenProvider.generateRefreshToken({

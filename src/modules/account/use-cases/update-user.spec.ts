@@ -24,8 +24,6 @@ describe("UpdateUserUseCase", () => {
 			name: "John Doe",
 			email: "john@example.com",
 			passwordHash: "hashed:123456",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		userId = user.id;
@@ -35,7 +33,7 @@ describe("UpdateUserUseCase", () => {
 		const result = await sut.execute({
 			userId,
 			name: "John Updated",
-			currentUserId: userId, // Mesmo usuário
+			currentUserId: userId,
 			currentUserTenantId: "tenant-1",
 		});
 
@@ -71,8 +69,6 @@ describe("UpdateUserUseCase", () => {
 			name: "Another User",
 			email: "another@example.com",
 			passwordHash: "hashed:123456",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		const result = await sut.execute({
@@ -114,8 +110,6 @@ describe("UpdateUserUseCase", () => {
 			name: "Another User",
 			email: "another@example.com",
 			passwordHash: "hashed:123456",
-			tenantId: "tenant-1",
-			role: "user",
 		});
 
 		// Try to update the first user's email to the second user's email
@@ -130,30 +124,6 @@ describe("UpdateUserUseCase", () => {
 
 		if (result.isLeft()) {
 			assert.ok(result.value instanceof EmailAlreadyInUseError);
-		}
-	});
-
-	test("should allow email update if email is already in use but in a different tenant", async () => {
-		await createUserInRepository(usersRepository, {
-			name: "Another User",
-			email: "same@example.com",
-			passwordHash: "hashed:123456",
-			tenantId: "tenant-2", // Different tenant
-			role: "user",
-		});
-
-		const result = await sut.execute({
-			userId,
-			email: "same@example.com",
-			currentUserId: userId, // Mesmo usuário
-			currentUserTenantId: "tenant-1",
-		});
-
-		assert.ok(result.isRight());
-
-		if (result.isRight()) {
-			const { user } = result.value;
-			assert.strictEqual(user.email, "same@example.com");
 		}
 	});
 

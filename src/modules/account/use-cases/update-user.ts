@@ -12,7 +12,7 @@ interface UpdateUserRequest {
 	name?: string;
 	email?: string;
 	currentUserId: string;
-	currentUserTenantId: string; // Mantido para verificação de email duplicado
+	currentUserTenantId: string;
 }
 
 interface UpdateUserResponse {
@@ -50,10 +50,7 @@ export class UpdateUserUseCase {
 
 		// Verificar se o email já está em uso
 		if (email && email !== user.email) {
-			const userWithSameEmail = await this.usersRepository.findByEmail(
-				email,
-				currentUserTenantId,
-			);
+			const userWithSameEmail = await this.usersRepository.findByEmail(email);
 
 			if (userWithSameEmail && userWithSameEmail.id !== userId) {
 				return left(new EmailAlreadyInUseError(email));
@@ -71,11 +68,7 @@ export class UpdateUserUseCase {
 		}
 
 		// Atualizar o usuário
-		const updatedUser = await this.usersRepository.update(
-			userId,
-			user.tenantId,
-			updateData,
-		);
+		const updatedUser = await this.usersRepository.update(userId, updateData);
 
 		if (!updatedUser) {
 			return left(new UserNotFoundError());

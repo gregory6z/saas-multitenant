@@ -27,7 +27,6 @@ describe("CreateAccountService", () => {
 			name: "John Doe",
 			email: "john@example.com",
 			password: "123456",
-			tenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
@@ -38,8 +37,6 @@ describe("CreateAccountService", () => {
 			// Verificar dados básicos do usuário
 			assert.strictEqual(user.name, "John Doe");
 			assert.strictEqual(user.email, "john@example.com");
-			assert.strictEqual(user.tenantId, "tenant-1");
-			assert.strictEqual(user.role, "user");
 			assert.strictEqual(user.passwordHash, "hashed:123456");
 
 			// Verificar dados de verificação de email
@@ -66,7 +63,6 @@ describe("CreateAccountService", () => {
 			name: "John Doe",
 			email: "john@example.com",
 			password: "123456",
-			tenantId: "tenant-1",
 			generateVerificationToken: false,
 		});
 
@@ -91,15 +87,12 @@ describe("CreateAccountService", () => {
 			name: "Admin User",
 			email: "admin@example.com",
 			password: "123456",
-			tenantId: "tenant-1",
-			role: "admin",
 		});
 
 		assert.ok(result.isRight());
 
 		if (result.isRight()) {
 			const { user } = result.value;
-			assert.strictEqual(user.role, "admin");
 		}
 	});
 
@@ -107,14 +100,12 @@ describe("CreateAccountService", () => {
 		// Adicionando um usuário existente ao repositório usando nossa função auxiliar
 		addUserToInMemoryRepository(usersRepository, {
 			email: "john@example.com",
-			tenantId: "tenant-1",
 		});
 
 		const result = await sut.execute({
 			name: "Another John",
 			email: "john@example.com",
 			password: "123456",
-			tenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());
@@ -126,23 +117,5 @@ describe("CreateAccountService", () => {
 				'The email "john@example.com" is already in use.',
 			);
 		}
-	});
-
-	test("should be able to create users with the same email in different tenants", async () => {
-		// Adicionando um usuário existente ao repositório usando nossa função auxiliar
-		addUserToInMemoryRepository(usersRepository, {
-			email: "john@example.com",
-			tenantId: "tenant-1",
-		});
-
-		const result = await sut.execute({
-			name: "John Doe",
-			email: "john@example.com",
-			password: "123456",
-			tenantId: "tenant-2",
-		});
-
-		assert.ok(result.isRight());
-		assert.strictEqual(usersRepository.items.length, 2);
 	});
 });

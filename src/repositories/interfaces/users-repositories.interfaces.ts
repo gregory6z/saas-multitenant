@@ -6,13 +6,8 @@ import type {
 
 export interface UsersRepository {
 	findById(id: string): Promise<User | null>;
-	findByEmail(email: string, tenantId: string): Promise<User | null>;
-	findByEmailAcrossTenants(email: string): Promise<User | null>;
+	findByEmail(email: string): Promise<User | null>;
 	create(data: CreateUserDTO): Promise<User>;
-	update(
-		id: string,
-		tenantId: string,
-		data: UpdateUserDTO,
-	): Promise<User | null>;
+	update(id: string, data: UpdateUserDTO): Promise<User | null>;
 	delete(id: string): Promise<void>;
 }

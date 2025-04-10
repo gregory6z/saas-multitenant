@@ -31,7 +31,7 @@ export class AuthenticateUserUseCase {
 		email,
 		password,
 	}: AuthenticateUserRequest): Promise<AuthenticateUserResult> {
-		const user = await this.usersRepository.findByEmailAcrossTenants(email);
+		const user = await this.usersRepository.findByEmail(email);
 
 		if (!user) {
 			return left(new InvalidCredentialsError());
@@ -48,8 +48,6 @@ export class AuthenticateUserUseCase {
 
 		const token = await this.tokenProvider.generateToken({
 			userId: user.id,
-			tenantId: user.tenantId,
-			role: user.role,
 		});
 
 		const tokenFamily = randomUUID();

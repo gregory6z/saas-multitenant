@@ -11,8 +11,6 @@ interface CreateAccountRequest {
 	name: string;
 	email: string;
 	password: string;
-	tenantId: string;
-	role?: "admin" | "curator" | "user";
 	generateVerificationToken?: boolean;
 }
 
@@ -36,14 +34,9 @@ export class CreateAccountUseCase {
 		name,
 		email,
 		password,
-		tenantId,
-		role = "user",
 		generateVerificationToken = true,
 	}: CreateAccountRequest): Promise<CreateAccountResult> {
-		const userWithSameEmail = await this.usersRepository.findByEmail(
-			email,
-			tenantId,
-		);
+		const userWithSameEmail = await this.usersRepository.findByEmail(email);
 
 		if (userWithSameEmail) {
 			return left(new EmailAlreadyInUseError(email));
@@ -60,8 +53,6 @@ export class CreateAccountUseCase {
 			name,
 			email,
 			passwordHash,
-			tenantId,
-			role,
 			emailVerification: {
 				token: verificationToken,
 				expiresAt,
