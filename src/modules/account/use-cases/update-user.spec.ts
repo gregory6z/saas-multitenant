@@ -1,26 +1,23 @@
 import { test, describe, beforeEach } from "node:test";
 import assert from "node:assert";
 
-import { InMemoryHashProvider } from "@/providers/hash/implementations/in-memory-hash-provider.js";
 import { InMemoryUsersRepository } from "@/repositories/in-memory/in-memory-users-repositories.js";
 import {
 	EmailAlreadyInUseError,
 	UserNotFoundError,
-	UnauthorizedRoleChangeError,
+	UnauthorizedOperationError,
 } from "../errors/account.errors.ts";
 import { UpdateUserUseCase } from "./update-user.ts";
 import { createUserInRepository } from "@/core/entities/test/make-user.ts";
 
-describe("UpdateUserService", () => {
+describe("UpdateUserUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
-	let hashProvider: InMemoryHashProvider;
 	let sut: UpdateUserUseCase;
 	let userId: string;
 
 	beforeEach(async () => {
 		usersRepository = new InMemoryUsersRepository();
-		hashProvider = new InMemoryHashProvider();
-		sut = new UpdateUserUseCase(usersRepository, hashProvider);
+		sut = new UpdateUserUseCase(usersRepository);
 
 		// Criar um usuário para os testes usando nossa função auxiliar
 		const user = await createUserInRepository(usersRepository, {
@@ -34,12 +31,12 @@ describe("UpdateUserService", () => {
 		userId = user.id;
 	});
 
-	test("should be able to update user name", async () => {
+	test("should be able to update user name when it's the same user", async () => {
 		const result = await sut.execute({
 			userId,
-			tenantId: "tenant-1",
 			name: "John Updated",
-			currentUserRole: "user",
+			currentUserId: userId, // Mesmo usuário
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
@@ -48,16 +45,15 @@ describe("UpdateUserService", () => {
 			const { user } = result.value;
 			assert.strictEqual(user.name, "John Updated");
 			assert.strictEqual(user.email, "john@example.com"); // unchanged
-			assert.strictEqual(user.role, "user"); // unchanged
 		}
 	});
 
-	test("should be able to update user email", async () => {
+	test("should be able to update user email when it's the same user", async () => {
 		const result = await sut.execute({
 			userId,
-			tenantId: "tenant-1",
 			email: "john-updated@example.com",
-			currentUserRole: "user",
+			currentUserId: userId, // Mesmo usuário
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
@@ -66,63 +62,43 @@ describe("UpdateUserService", () => {
 			const { user } = result.value;
 			assert.strictEqual(user.name, "John Doe"); // unchanged
 			assert.strictEqual(user.email, "john-updated@example.com");
-			assert.strictEqual(user.role, "user"); // unchanged
 		}
 	});
 
-	test("should be able to update user password", async () => {
-		const result = await sut.execute({
-			userId,
+	test("should not allow updating another user's information", async () => {
+		// Criar outro usuário
+		const anotherUser = await createUserInRepository(usersRepository, {
+			name: "Another User",
+			email: "another@example.com",
+			passwordHash: "hashed:123456",
 			tenantId: "tenant-1",
-			password: "new-password",
-			currentUserRole: "user",
+			role: "user",
 		});
 
-		assert.ok(result.isRight());
-
-		if (result.isRight()) {
-			const { user } = result.value;
-			assert.strictEqual(user.passwordHash, "hashed:new-password");
-		}
-	});
-
-	test("should allow admin to update user role", async () => {
 		const result = await sut.execute({
-			userId,
-			tenantId: "tenant-1",
-			role: "curator",
-			currentUserRole: "admin",
-		});
-
-		assert.ok(result.isRight());
-
-		if (result.isRight()) {
-			const { user } = result.value;
-			assert.strictEqual(user.role, "curator");
-		}
-	});
-
-	test("should not allow non-admin to update user role", async () => {
-		const result = await sut.execute({
-			userId,
-			tenantId: "tenant-1",
-			role: "admin",
-			currentUserRole: "user",
+			userId: anotherUser.id, // Outro usuário
+			name: "Attempted Update",
+			currentUserId: userId, // Usuário atual
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());
 
 		if (result.isLeft()) {
-			assert.ok(result.value instanceof UnauthorizedRoleChangeError);
+			assert.ok(result.value instanceof UnauthorizedOperationError);
 		}
+
+		// Verificar que o nome não foi alterado
+		const unchangedUser = await usersRepository.findById(anotherUser.id);
+		assert.strictEqual(unchangedUser?.name, "Another User");
 	});
 
 	test("should not update user with non-existent ID", async () => {
 		const result = await sut.execute({
 			userId: "non-existent-id",
-			tenantId: "tenant-1",
 			name: "Updated Name",
-			currentUserRole: "user",
+			currentUserId: "non-existent-id", // Mesmo ID para passar na verificação de autorização
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());
@@ -145,9 +121,9 @@ describe("UpdateUserService", () => {
 		// Try to update the first user's email to the second user's email
 		const result = await sut.execute({
 			userId,
-			tenantId: "tenant-1",
 			email: "another@example.com",
-			currentUserRole: "user",
+			currentUserId: userId, // Mesmo usuário
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isLeft());
@@ -168,9 +144,9 @@ describe("UpdateUserService", () => {
 
 		const result = await sut.execute({
 			userId,
-			tenantId: "tenant-1",
 			email: "same@example.com",
-			currentUserRole: "user",
+			currentUserId: userId, // Mesmo usuário
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
@@ -184,8 +160,8 @@ describe("UpdateUserService", () => {
 	test("should return the same user if no fields are provided for update", async () => {
 		const result = await sut.execute({
 			userId,
-			tenantId: "tenant-1",
-			currentUserRole: "user",
+			currentUserId: userId, // Mesmo usuário
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
@@ -194,19 +170,16 @@ describe("UpdateUserService", () => {
 			const { user } = result.value;
 			assert.strictEqual(user.name, "John Doe");
 			assert.strictEqual(user.email, "john@example.com");
-			assert.strictEqual(user.role, "user");
 		}
 	});
 
 	test("should update multiple fields at once", async () => {
 		const result = await sut.execute({
 			userId,
-			tenantId: "tenant-1",
 			name: "John Updated",
 			email: "john-updated@example.com",
-			password: "new-password",
-			currentUserRole: "admin",
-			role: "curator",
+			currentUserId: userId, // Mesmo usuário
+			currentUserTenantId: "tenant-1",
 		});
 
 		assert.ok(result.isRight());
@@ -215,8 +188,6 @@ describe("UpdateUserService", () => {
 			const { user } = result.value;
 			assert.strictEqual(user.name, "John Updated");
 			assert.strictEqual(user.email, "john-updated@example.com");
-			assert.strictEqual(user.passwordHash, "hashed:new-password");
-			assert.strictEqual(user.role, "curator");
 		}
 	});
 });

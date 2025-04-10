@@ -33,7 +33,6 @@ export class InitializePermissionsUseCase {
 			"users:create": "Criar usuários",
 			"users:edit": "Editar usuários",
 			"users:delete": "Excluir usuários",
-			// ... outras descrições
 		};
 
 		return descriptions[code] || code;

@@ -1,21 +1,18 @@
 import type { UpdateUserDTO, User } from "@/core/entities/User.js";
 import { left, right, type Either } from "@/core/either.js";
-import type { HashProvider } from "@/providers/hash/hash-provider.js";
 import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
 import {
 	EmailAlreadyInUseError,
 	UserNotFoundError,
-	UnauthorizedRoleChangeError,
+	UnauthorizedOperationError,
 } from "../errors/account.errors.ts";
 
 interface UpdateUserRequest {
 	userId: string;
-	tenantId: string;
 	name?: string;
 	email?: string;
-	password?: string;
-	role?: "admin" | "curator" | "user";
-	currentUserRole: "admin" | "curator" | "user";
+	currentUserId: string;
+	currentUserTenantId: string; // Mantido para verificação de email duplicado
 }
 
 interface UpdateUserResponse {
@@ -25,35 +22,37 @@ interface UpdateUserResponse {
 type UpdateUserError =
 	| EmailAlreadyInUseError
 	| UserNotFoundError
-	| UnauthorizedRoleChangeError;
+	| UnauthorizedOperationError;
 
 type UpdateUserResult = Either<UpdateUserError, UpdateUserResponse>;
 
 export class UpdateUserUseCase {
-	constructor(
-		private usersRepository: UsersRepository,
-		private hashProvider: HashProvider,
-	) {}
+	constructor(private usersRepository: UsersRepository) {}
 
 	async execute({
 		userId,
-		tenantId,
 		name,
 		email,
-		password,
-		role,
-		currentUserRole,
+		currentUserId,
+		currentUserTenantId,
 	}: UpdateUserRequest): Promise<UpdateUserResult> {
+		// Verificar se o usuário existe
 		const user = await this.usersRepository.findById(userId);
 
 		if (!user) {
 			return left(new UserNotFoundError());
 		}
 
+		// Verificar se o usuário está tentando alterar suas próprias informações
+		if (userId !== currentUserId) {
+			return left(new UnauthorizedOperationError());
+		}
+
+		// Verificar se o email já está em uso
 		if (email && email !== user.email) {
 			const userWithSameEmail = await this.usersRepository.findByEmail(
 				email,
-				tenantId,
+				currentUserTenantId,
 			);
 
 			if (userWithSameEmail && userWithSameEmail.id !== userId) {
@@ -61,29 +60,20 @@ export class UpdateUserUseCase {
 			}
 		}
 
-		if (role && role !== user.role) {
-			if (currentUserRole !== "admin") {
-				return left(new UnauthorizedRoleChangeError());
-			}
-		}
-
+		// Preparar dados para atualização
 		const updateData: UpdateUserDTO = {};
 
 		if (name !== undefined) updateData.name = name;
 		if (email !== undefined) updateData.email = email;
-		if (role !== undefined) updateData.role = role;
-
-		if (password) {
-			updateData.passwordHash = await this.hashProvider.generateHash(password);
-		}
 
 		if (Object.keys(updateData).length === 0) {
 			return right({ user });
 		}
 
+		// Atualizar o usuário
 		const updatedUser = await this.usersRepository.update(
 			userId,
-			tenantId,
+			user.tenantId,
 			updateData,
 		);
 

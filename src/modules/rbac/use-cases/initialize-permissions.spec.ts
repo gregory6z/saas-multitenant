@@ -17,7 +17,6 @@ describe("InitializePermissionsUseCase", () => {
 	test("should initialize all permissions defined in PERMISSIONS", async () => {
 		const result = await sut.execute();
 
-		// Verificar se a operação foi bem-sucedida
 		assert.ok(result.isRight());
 		if (result.isRight()) {
 			assert.deepStrictEqual(result.value, { success: true });
