@@ -15,6 +15,8 @@ export const PERMISSIONS = {
 	TENANT_TRANSFER_OWNERSHIP: "tenant:transfer-ownership",
 	TENANT_MANAGE_BILLING: "tenant:manage-billing",
 	TENANT_MANAGE_PLAN: "tenant:manage-plan",
+	TENANTS_VIEW: "tenants:view",
+	TENANT_CHANGE_SUBDOMAIN: "tenant:change-subdomain",
 
 	// Permissões para chatbots
 	BOTS_VIEW: "bots:view",
