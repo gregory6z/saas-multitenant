@@ -16,7 +16,6 @@ describe("GetTenantByDomainUseCase", () => {
 	});
 
 	test("should be able to get a tenant by subdomain", async () => {
-		// Adicionar um tenant ao repositório
 		addTenantToInMemoryRepository(tenantsRepository, {
 			id: "tenant-1",
 			name: "Empresa ABC",

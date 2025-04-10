@@ -1,4 +1,5 @@
 import { left, right, type Either } from "@/core/either.js";
+import type { Tenant } from "@/core/entities/Tenant.js";
 import type { TenantsRepository } from "@/repositories/interfaces/tenants-repositories.interfaces.js";
 import { TenantNotFoundError } from "../errors/tenant.errors.ts";
 
@@ -7,14 +8,7 @@ interface GetTenantByDomainRequest {
 }
 
 interface GetTenantByDomainResponse {
-	tenant: {
-		id: string;
-		name: string;
-		subdomain: string;
-		status: string;
-		createdAt: Date;
-		updatedAt: Date;
-	};
+	tenant: Tenant;
 }
 
 type GetTenantByDomainResult = Either<
@@ -35,14 +29,7 @@ export class GetTenantByDomainUseCase {
 		}
 
 		return right({
-			tenant: {
-				id: tenant.id,
-				name: tenant.name,
-				subdomain: tenant.subdomain,
-				status: tenant.status,
-				createdAt: tenant.createdAt,
-				updatedAt: tenant.updatedAt,
-			},
+			tenant,
 		});
 	}
 }
