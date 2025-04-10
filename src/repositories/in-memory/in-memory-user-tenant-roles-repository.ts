@@ -76,4 +76,8 @@ export class InMemoryUserTenantRolesRepository
 			this.items.splice(userTenantRoleIndex, 1);
 		}
 	}
+
+	async deleteByUser(userId: string): Promise<void> {
+		this.items = this.items.filter((item) => item.userId !== userId);
+	}
 }

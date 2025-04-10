@@ -18,4 +18,5 @@ export interface UserTenantRolesRepository {
 		data: UpdateUserTenantRoleDTO,
 	): Promise<UserTenantRole | null>;
 	delete(id: string): Promise<void>;
+	deleteByUser(userId: string): Promise<void>;
 }
