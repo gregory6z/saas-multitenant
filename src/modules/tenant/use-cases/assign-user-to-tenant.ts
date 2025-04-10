@@ -71,7 +71,6 @@ export class AssignUserToTenantUseCase {
 			return left(new UnauthorizedOperationError());
 		}
 
-		// Verificar se a role é válida
 		const validRoles: UserRole[] = ["owner", "admin", "curator", "user"];
 		if (!validRoles.includes(role)) {
 			return left(new InvalidRoleError(role));

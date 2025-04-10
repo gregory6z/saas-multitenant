@@ -2,6 +2,7 @@ import type { Tenant } from "@/core/entities/Tenant.js";
 import { left, right, type Either } from "@/core/either.js";
 import type { TenantsRepository } from "@/repositories/interfaces/tenants-repositories.interfaces.js";
 import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
+import type { UserTenantRolesRepository } from "@/repositories/interfaces/user-tenant-roles-repository.interfaces.js";
 import { DomainEvents } from "@/core/events/domain-events.js";
 import { TenantCreatedEvent } from "../events/tenant-created-event.ts";
 import { SubdomainAlreadyInUseError } from "../errors/tenant.errors.ts";
@@ -28,6 +29,7 @@ export class CreateTenantUseCase {
 	constructor(
 		private tenantsRepository: TenantsRepository,
 		private usersRepository: UsersRepository,
+		private userTenantRolesRepository: UserTenantRolesRepository,
 	) {}
 
 	async execute({
@@ -58,6 +60,12 @@ export class CreateTenantUseCase {
 			ragflowId,
 		});
 
+		await this.userTenantRolesRepository.create({
+			userId: ownerId,
+			tenantId: tenant.id,
+			role: "owner",
+		});
+
 		DomainEvents.markEvent(
 			new TenantCreatedEvent({
 				tenantId: tenant.id,
@@ -66,14 +74,6 @@ export class CreateTenantUseCase {
 				ownerId: tenant.ownerId,
 			}),
 		);
-
-		await this.usersRepository.create({
-			name: "Owner",
-			email: "owner@example.com",
-			passwordHash: "hashed-password",
-			tenantId: tenant.id,
-			role: "owner",
-		});
 
 		return right({
 			tenant,
