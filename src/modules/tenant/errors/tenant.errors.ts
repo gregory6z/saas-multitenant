@@ -25,3 +25,12 @@ export class CrossTenantOperationError extends Error {
 		this.name = "CrossTenantOperationError";
 	}
 }
+
+export class CannotAssignOwnerRoleError extends Error {
+	constructor() {
+		super(
+			'Cannot assign "owner" role through this operation. Owners are assigned only during tenant creation.',
+		);
+		this.name = "CannotAssignOwnerRoleError";
+	}
+}

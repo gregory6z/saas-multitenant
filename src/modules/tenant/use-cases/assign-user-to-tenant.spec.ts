@@ -15,7 +15,10 @@ import {
 	UserAlreadyInTenantError,
 	InvalidRoleError,
 } from "@/modules/account/errors/account.errors.ts";
-import { TenantNotFoundError } from "@/modules/tenant/errors/tenant.errors.ts";
+import {
+	CannotAssignOwnerRoleError,
+	TenantNotFoundError,
+} from "@/modules/tenant/errors/tenant.errors.ts";
 
 describe("AssignUserToTenantUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
@@ -190,6 +193,38 @@ describe("AssignUserToTenantUseCase", () => {
 
 		assert.ok(result.isLeft());
 		assert.ok(result.value instanceof InvalidRoleError);
+
+		// Verificar que nenhuma associação foi criada
+		const memberships = await userTenantRolesRepository.findByUser(userId);
+		assert.strictEqual(memberships.length, 0);
+	});
+
+	// Novo teste para verificar que não é possível atribuir a role "owner"
+	test("should not be able to assign the 'owner' role", async () => {
+		// Configurar permissão para adicionar usuários ao tenant
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+
+		const result = await sut.execute({
+			userId,
+			targetTenantId: tenantId,
+			role: "owner", // Tentando atribuir a role "owner"
+			currentUserId: "admin-1",
+			currentUserRole: "admin",
+			currentUserTenantId: tenantId,
+		});
+
+		assert.ok(result.isLeft());
+
+		// Adicione este console.log para depuração
+		console.log("Error returned:", result.value);
+		console.log("Error type:", result.value.constructor.name);
+
+		assert.ok(result.value instanceof CannotAssignOwnerRoleError);
+
+		assert.strictEqual(
+			result.value.message,
+			'Cannot assign "owner" role through this operation. Owners are assigned only during tenant creation.',
+		);
 
 		// Verificar que nenhuma associação foi criada
 		const memberships = await userTenantRolesRepository.findByUser(userId);

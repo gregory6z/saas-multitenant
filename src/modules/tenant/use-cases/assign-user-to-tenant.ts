@@ -15,7 +15,10 @@ import {
 	UserAlreadyInTenantError,
 	InvalidRoleError,
 } from "@/modules/account/errors/account.errors.ts";
-import { TenantNotFoundError } from "@/modules/tenant/errors/tenant.errors.ts";
+import {
+	CannotAssignOwnerRoleError,
+	TenantNotFoundError,
+} from "@/modules/tenant/errors/tenant.errors.ts";
 
 interface AssignUserToTenantRequest {
 	userId: string;
@@ -36,7 +39,8 @@ type AssignUserToTenantError =
 	| TenantNotFoundError
 	| UnauthorizedOperationError
 	| UserAlreadyInTenantError
-	| InvalidRoleError;
+	| InvalidRoleError
+	| CannotAssignOwnerRoleError;
 
 type AssignUserToTenantResult = Either<
 	AssignUserToTenantError,
@@ -59,7 +63,6 @@ export class AssignUserToTenantUseCase {
 		currentUserRole,
 		currentUserTenantId,
 	}: AssignUserToTenantRequest): Promise<AssignUserToTenantResult> {
-		// Verificar se o usuário atual tem permissão para adicionar usuários ao tenant
 		const permissionCheck = await this.checkPermissionUseCase.execute({
 			userRole: currentUserRole,
 			permission: PERMISSIONS.TENANT_ASSIGN_USERS,
@@ -71,7 +74,11 @@ export class AssignUserToTenantUseCase {
 			return left(new UnauthorizedOperationError());
 		}
 
-		const validRoles: UserRole[] = ["owner", "admin", "curator", "user"];
+		if (role === "owner") {
+			return left(new CannotAssignOwnerRoleError());
+		}
+
+		const validRoles: UserRole[] = ["admin", "curator", "user"];
 		if (!validRoles.includes(role)) {
 			return left(new InvalidRoleError(role));
 		}
@@ -86,7 +93,6 @@ export class AssignUserToTenantUseCase {
 			return left(new TenantNotFoundError());
 		}
 
-		// Verificar se o usuário já está associado ao tenant
 		const existingMembership =
 			await this.userTenantRolesRepository.findByUserAndTenant(
 				userId,
@@ -97,7 +103,6 @@ export class AssignUserToTenantUseCase {
 			return left(new UserAlreadyInTenantError(userId, targetTenantId));
 		}
 
-		// Criar a associação entre usuário e tenant
 		const membership = await this.userTenantRolesRepository.create({
 			userId,
 			tenantId: targetTenantId,

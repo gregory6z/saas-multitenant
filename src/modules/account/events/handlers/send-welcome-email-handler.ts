@@ -22,7 +22,6 @@ export class SendWelcomeEmailHandler
 			variables: {
 				name: user.name,
 				email: user.email,
-				tenantId: user.tenantId,
 			},
 		});
 	}
