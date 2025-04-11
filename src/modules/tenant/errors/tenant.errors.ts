@@ -34,3 +34,28 @@ export class CannotAssignOwnerRoleError extends Error {
 		this.name = "CannotAssignOwnerRoleError";
 	}
 }
+
+export class UserNotInTenantError extends Error {
+	constructor(userId: string, tenantId: string) {
+		super(`User ${userId} is not a member of tenant ${tenantId}.`);
+		this.name = "UserNotInTenantError";
+	}
+}
+
+export class CannotRemoveOwnerError extends Error {
+	constructor() {
+		super(
+			'Cannot remove the "owner" of a tenant. Transfer ownership first or delete the tenant.',
+		);
+		this.name = "CannotRemoveOwnerError";
+	}
+}
+
+export class CannotRemoveSelfError extends Error {
+	constructor() {
+		super(
+			"Cannot remove yourself from a tenant. Use another admin account to perform this operation.",
+		);
+		this.name = "CannotRemoveSelfError";
+	}
+}

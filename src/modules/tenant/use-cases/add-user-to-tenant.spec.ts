@@ -5,7 +5,6 @@ import { InMemoryUsersRepository } from "@/repositories/in-memory/in-memory-user
 import { InMemoryTenantsRepository } from "@/repositories/in-memory/in-memory-tenants-repositories.ts";
 import { InMemoryUserTenantRolesRepository } from "@/repositories/in-memory/in-memory-user-tenant-roles-repository.ts";
 import { InMemoryCheckPermissionUseCase } from "@/modules/rbac/use-cases/test/in-memory-check-permission.ts";
-import { AssignUserToTenantUseCase } from "./assign-user-to-tenant.ts";
 import { addUserToInMemoryRepository } from "@/core/entities/test/make-user.ts";
 import { addTenantToInMemoryRepository } from "@/core/entities/test/make-tenant.ts";
 import { PERMISSIONS } from "@/modules/rbac/constants/permissions.js";
@@ -19,13 +18,14 @@ import {
 	CannotAssignOwnerRoleError,
 	TenantNotFoundError,
 } from "@/modules/tenant/errors/tenant.errors.ts";
+import { AddUserToTenantUseCase } from "./add-user-to-tenant.ts";
 
-describe("AssignUserToTenantUseCase", () => {
+describe("AddUserToTenantUseCase", () => {
 	let usersRepository: InMemoryUsersRepository;
 	let tenantsRepository: InMemoryTenantsRepository;
 	let userTenantRolesRepository: InMemoryUserTenantRolesRepository;
 	let checkPermissionUseCase: InMemoryCheckPermissionUseCase;
-	let sut: AssignUserToTenantUseCase;
+	let sut: AddUserToTenantUseCase;
 	let userId: string;
 	let tenantId: string;
 
@@ -35,14 +35,13 @@ describe("AssignUserToTenantUseCase", () => {
 		userTenantRolesRepository = new InMemoryUserTenantRolesRepository();
 		checkPermissionUseCase = new InMemoryCheckPermissionUseCase();
 
-		sut = new AssignUserToTenantUseCase(
+		sut = new AddUserToTenantUseCase(
 			usersRepository,
 			tenantsRepository,
 			userTenantRolesRepository,
 			checkPermissionUseCase,
 		);
 
-		// Limpar permissões antes de cada teste
 		checkPermissionUseCase.clearPermissions();
 
 		// Adicionar um usuário para os testes
@@ -66,7 +65,7 @@ describe("AssignUserToTenantUseCase", () => {
 
 	test("should be able to assign a user to a tenant with a specific role", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		const result = await sut.execute({
 			userId,
@@ -116,7 +115,7 @@ describe("AssignUserToTenantUseCase", () => {
 
 	test("should return error when user is not found", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		const result = await sut.execute({
 			userId: "non-existent-user",
@@ -133,7 +132,7 @@ describe("AssignUserToTenantUseCase", () => {
 
 	test("should return error when tenant is not found", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		const result = await sut.execute({
 			userId,
@@ -150,7 +149,7 @@ describe("AssignUserToTenantUseCase", () => {
 
 	test("should return error when user is already assigned to the tenant", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		// Adicionar uma associação existente
 		await userTenantRolesRepository.create({
@@ -179,7 +178,7 @@ describe("AssignUserToTenantUseCase", () => {
 
 	test("should return error when trying to assign an invalid role", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		const result = await sut.execute({
 			userId,
@@ -202,7 +201,7 @@ describe("AssignUserToTenantUseCase", () => {
 	// Novo teste para verificar que não é possível atribuir a role "owner"
 	test("should not be able to assign the 'owner' role", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		const result = await sut.execute({
 			userId,
@@ -233,7 +232,7 @@ describe("AssignUserToTenantUseCase", () => {
 
 	test("should allow different roles for the same user in different tenants", async () => {
 		// Configurar permissão para adicionar usuários ao tenant
-		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ASSIGN_USERS);
+		checkPermissionUseCase.allowPermission(PERMISSIONS.TENANT_ADD_USERS);
 
 		// Criar um segundo tenant
 		const secondTenant = addTenantToInMemoryRepository(tenantsRepository, {

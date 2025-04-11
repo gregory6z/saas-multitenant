@@ -1,9 +1,4 @@
 import { left, right, type Either } from "@/core/either.js";
-import type { User } from "@/core/entities/User.js";
-import type {
-	UserTenantRole,
-	UserRole,
-} from "@/core/entities/UserTenantRole.js";
 import type { UsersRepository } from "@/repositories/interfaces/users-repositories.interfaces.js";
 import type { TenantsRepository } from "@/repositories/interfaces/tenants-repositories.interfaces.js";
 import type { UserTenantRolesRepository } from "@/repositories/interfaces/user-tenant-roles-repository.interfaces.js";
@@ -12,42 +7,41 @@ import { PERMISSIONS } from "@/modules/rbac/constants/permissions.js";
 import {
 	UserNotFoundError,
 	UnauthorizedOperationError,
-	UserAlreadyInTenantError,
-	InvalidRoleError,
+	CrossTenantOperationError,
 } from "@/modules/account/errors/account.errors.ts";
 import {
-	CannotAssignOwnerRoleError,
+	CannotRemoveOwnerError,
+	CannotRemoveSelfError,
 	TenantNotFoundError,
+	UserNotInTenantError,
 } from "@/modules/tenant/errors/tenant.errors.ts";
 
-interface AssignUserToTenantRequest {
+interface RemoveUserFromTenantRequest {
 	userId: string;
-	targetTenantId: string;
-	role: UserRole;
+	tenantId: string;
 	currentUserId: string;
 	currentUserRole: string;
 	currentUserTenantId: string;
 }
 
-interface AssignUserToTenantResponse {
-	user: User;
-	membership: UserTenantRole;
+interface RemoveUserFromTenantResponse {
+	success: true;
 }
 
-type AssignUserToTenantError =
+type RemoveUserFromTenantError =
 	| UserNotFoundError
 	| TenantNotFoundError
 	| UnauthorizedOperationError
-	| UserAlreadyInTenantError
-	| InvalidRoleError
-	| CannotAssignOwnerRoleError;
+	| UserNotInTenantError
+	| CannotRemoveOwnerError
+	| CannotRemoveSelfError;
 
-type AssignUserToTenantResult = Either<
-	AssignUserToTenantError,
-	AssignUserToTenantResponse
+type RemoveUserFromTenantResult = Either<
+	RemoveUserFromTenantError,
+	RemoveUserFromTenantResponse
 >;
 
-export class AssignUserToTenantUseCase {
+export class RemoveUserFromTenantUseCase {
 	constructor(
 		private usersRepository: UsersRepository,
 		private tenantsRepository: TenantsRepository,
@@ -57,15 +51,15 @@ export class AssignUserToTenantUseCase {
 
 	async execute({
 		userId,
-		targetTenantId,
-		role,
+		tenantId,
 		currentUserId,
 		currentUserRole,
 		currentUserTenantId,
-	}: AssignUserToTenantRequest): Promise<AssignUserToTenantResult> {
+	}: RemoveUserFromTenantRequest): Promise<RemoveUserFromTenantResult> {
+		// Verificar se o usuário atual tem permissão para remover usuários do tenant
 		const permissionCheck = await this.checkPermissionUseCase.execute({
 			userRole: currentUserRole,
-			permission: PERMISSIONS.TENANT_ASSIGN_USERS,
+			permission: PERMISSIONS.TENANT_REMOVE_USERS,
 			userId: currentUserId,
 			tenantId: currentUserTenantId,
 		});
@@ -74,13 +68,13 @@ export class AssignUserToTenantUseCase {
 			return left(new UnauthorizedOperationError());
 		}
 
-		if (role === "owner") {
-			return left(new CannotAssignOwnerRoleError());
+		if (tenantId !== currentUserTenantId) {
+			return left(new CrossTenantOperationError());
 		}
 
-		const validRoles: UserRole[] = ["admin", "curator", "user"];
-		if (!validRoles.includes(role)) {
-			return left(new InvalidRoleError(role));
+		const tenant = await this.tenantsRepository.findById(tenantId);
+		if (!tenant) {
+			return left(new TenantNotFoundError());
 		}
 
 		const user = await this.usersRepository.findById(userId);
@@ -88,30 +82,25 @@ export class AssignUserToTenantUseCase {
 			return left(new UserNotFoundError());
 		}
 
-		const tenant = await this.tenantsRepository.findById(targetTenantId);
-		if (!tenant) {
-			return left(new TenantNotFoundError());
-		}
-
-		const existingMembership =
-			await this.userTenantRolesRepository.findByUserAndTenant(
-				userId,
-				targetTenantId,
-			);
-
-		if (existingMembership) {
-			return left(new UserAlreadyInTenantError(userId, targetTenantId));
-		}
-
-		const membership = await this.userTenantRolesRepository.create({
+		const membership = await this.userTenantRolesRepository.findByUserAndTenant(
 			userId,
-			tenantId: targetTenantId,
-			role,
-		});
+			tenantId,
+		);
 
-		return right({
-			user,
-			membership,
-		});
+		if (!membership) {
+			return left(new UserNotInTenantError(userId, tenantId));
+		}
+
+		if (membership.role === "owner") {
+			return left(new CannotRemoveOwnerError());
+		}
+
+		if (userId === currentUserId) {
+			return left(new CannotRemoveSelfError());
+		}
+
+		await this.userTenantRolesRepository.delete(membership.id);
+
+		return right({ success: true });
 	}
 }
